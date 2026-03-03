@@ -1,0 +1,4 @@
+species,region,year,feed_type,stocking_density,harvest_weight_kg,survival_rate,production_tons
+# DUMMY FILE — Replace with actual production dataset
+# Columns expected: species, region, year, feed_type, stocking_density, harvest_weight_kg, survival_rate, production_tons
+# Uploaded by: ANY team member (raw data)

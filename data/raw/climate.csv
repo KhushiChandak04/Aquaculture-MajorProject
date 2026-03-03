@@ -1,0 +1,4 @@
+date,region,avg_temp_c,rainfall_mm,humidity_pct,wind_speed_kmh
+# DUMMY FILE — Replace with actual climate dataset
+# Columns expected: date, region, avg_temp, rainfall, humidity, wind_speed
+# Uploaded by: ANY team member (raw data)

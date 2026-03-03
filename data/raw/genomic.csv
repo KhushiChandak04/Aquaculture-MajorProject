@@ -1,0 +1,4 @@
+sample_id,gene_1,gene_2,gene_3,gene_4,gene_5,trait_label
+# DUMMY FILE — Replace with actual genomic dataset
+# Columns expected: sample_id, gene features, trait_label
+# Uploaded by: ANY team member (raw data)

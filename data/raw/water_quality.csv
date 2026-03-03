@@ -1,0 +1,4 @@
+sample_id,date,temperature_c,ph,dissolved_oxygen_mg_l,turbidity_ntu,ammonia_mg_l,nitrate_mg_l
+# DUMMY FILE — Replace with actual water quality dataset
+# Columns expected: sample_id, date, temperature, pH, dissolved_oxygen, turbidity, ammonia, nitrate
+# Uploaded by: ANY team member (raw data)
