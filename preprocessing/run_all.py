@@ -2,11 +2,13 @@ from pathlib import Path
 
 try:
     from .climate_preprocess import preprocess_climate
+    from .final_dataset_builder import build_final_dataset
     from .genomic_preprocess import preprocess_genomic
     from .production_preprocess import preprocess_production
     from .water_preprocess import preprocess_water
 except ImportError:
     from climate_preprocess import preprocess_climate
+    from final_dataset_builder import build_final_dataset
     from genomic_preprocess import preprocess_genomic
     from production_preprocess import preprocess_production
     from water_preprocess import preprocess_water
@@ -36,6 +38,8 @@ def run_all():
         raw_dir / "genomic.csv",
         processed_dir / "genomic_clean.csv",
     )
+
+    build_final_dataset(processed_dir)
 
     print("All preprocessing complete.")
 
