@@ -1,0 +1,18 @@
+{
+  "target_column": "disease_risk_target",
+  "test_size": 0.2,
+  "random_state": 42,
+  "class_distribution": {
+    "Low": 2308,
+    "Medium": 1335,
+    "High": 802
+  },
+  "train_shape": [
+    3556,
+    21
+  ],
+  "test_shape": [
+    889,
+    21
+  ]
+}
