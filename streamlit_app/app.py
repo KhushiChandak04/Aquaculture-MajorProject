@@ -45,6 +45,7 @@ FEATURE_SELECTOR_PATH = MODELS_DIR / "feature_selector.pkl"
 PRODUCTIVITY_METRICS_PATH = RESULTS_DIR / "productivity_metrics.csv"
 MODEL_COMPARISON_PLOT_PATH = RESULTS_DIR / "khushi_final_model_comparison.png"
 XAI_FEATURE_PATH = RESULTS_DIR / "khushi_weak_model_xai_features.csv"
+GENOMIC_IMPORTANCE_PATH = RESULTS_DIR / "genomic_feature_importance.csv"
 
 
 def safe_read_csv(path: Path):
@@ -286,6 +287,8 @@ feature_model_loaded = feature_selector_model is not None
 data_df = load_base_data()
 metrics_df = safe_read_csv(PRODUCTIVITY_METRICS_PATH)
 xai_df = safe_read_csv(XAI_FEATURE_PATH)
+if xai_df is None:
+    xai_df = safe_read_csv(GENOMIC_IMPORTANCE_PATH)
 
 st.sidebar.header("Artifact Status")
 st.sidebar.write(f"Productivity model: {'Loaded' if productivity_model is not None else 'Missing'}")
@@ -475,7 +478,7 @@ with tabs[1]:
         ax.set_title("Top Feature Importance (Permutation)")
         st.pyplot(fig)
     else:
-        st.info("XAI feature file not available yet (`khushi_weak_model_xai_features.csv`).")
+        st.info("XAI feature file not available yet (`khushi_weak_model_xai_features.csv` or `genomic_feature_importance.csv`).")
 
     if HAS_SHAP and productivity_model is not None and data_df is not None:
         st.markdown("**SHAP Runtime Status**")

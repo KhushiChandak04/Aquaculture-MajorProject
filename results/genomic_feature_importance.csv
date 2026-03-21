@@ -1,0 +1,6 @@
+feature,importance_mean,importance_std
+precip_mm,0.0,0.0
+temperature_celsius,0.0,0.0
+genomic_Num_G_global_mean,0.0,0.0
+genomic_Sequence_Length_global_mean,0.0,0.0
+country,-0.003059901641480392,0.0010849602708759075
