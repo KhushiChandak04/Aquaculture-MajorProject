@@ -13,6 +13,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 try:
+    feature_model = joblib.load("../models/feature_selector.pkl")
+    feature_model_loaded = True
+except:
+    feature_model_loaded = False
+
+try:
     ARIMA = importlib.import_module("statsmodels.tsa.arima.model").ARIMA
     HAS_ARIMA = True
 except Exception:
@@ -103,6 +109,20 @@ def load_model(path: Path):
     return joblib.load(path)
 
 
+@st.cache_resource
+def load_feature_selector_model(path: Path):
+    """Load Janhavi's feature selector model with explicit error handling."""
+    try:
+        if not path.exists():
+            return None, f"Feature selector file not found: {path}"
+        model = joblib.load(path)
+        return model, None
+    except FileNotFoundError:
+        return None, f"Feature selector file not found: {path}"
+    except Exception as exc:
+        return None, f"Failed to load feature selector model from {path}: {exc}"
+
+
 @st.cache_data
 def load_base_data():
     return safe_read_csv(DATA_FILE)
@@ -119,6 +139,45 @@ def default_input_row(df: pd.DataFrame):
             mode_vals = df[c].mode(dropna=True)
             row[c] = mode_vals.iloc[0] if len(mode_vals) else "Unknown"
     return row
+
+
+def build_aligned_input_df(user_values: dict, model=None, reference_df: pd.DataFrame = None):
+    """Create a 1-row input dataframe aligned to model training feature names/order."""
+    row = dict(user_values)
+
+    expected_features = None
+    try:
+        if model is not None and hasattr(model, "feature_names_in_"):
+            expected_features = list(model.feature_names_in_)
+        elif (
+            model is not None
+            and hasattr(model, "named_steps")
+            and "prep" in model.named_steps
+            and hasattr(model.named_steps["prep"], "feature_names_in_")
+        ):
+            expected_features = list(model.named_steps["prep"].feature_names_in_)
+    except Exception:
+        expected_features = None
+
+    if not expected_features:
+        return pd.DataFrame([row])
+
+    aligned = {}
+    for col in expected_features:
+        if col in row:
+            aligned[col] = row[col]
+            continue
+
+        if reference_df is not None and col in reference_df.columns:
+            if pd.api.types.is_numeric_dtype(reference_df[col]):
+                aligned[col] = float(reference_df[col].median())
+            else:
+                mode_vals = reference_df[col].mode(dropna=True)
+                aligned[col] = mode_vals.iloc[0] if len(mode_vals) else "Unknown"
+        else:
+            aligned[col] = 0.0
+
+    return pd.DataFrame([aligned], columns=expected_features)
 
 
 @st.cache_data(show_spinner=False)
@@ -220,7 +279,9 @@ st.caption("Interactive predictions, explainability, forecasting, simulation, an
 
 productivity_model = load_model(PRODUCTIVITY_MODEL_PATH)
 sustainability_model = load_model(SUSTAINABILITY_MODEL_PATH)
-feature_selector_model = load_model(FEATURE_SELECTOR_PATH)
+feature_selector_model, feature_selector_load_error = load_feature_selector_model(FEATURE_SELECTOR_PATH)
+feature_model = feature_selector_model
+feature_model_loaded = feature_selector_model is not None
 
 data_df = load_base_data()
 metrics_df = safe_read_csv(PRODUCTIVITY_METRICS_PATH)
@@ -229,7 +290,9 @@ xai_df = safe_read_csv(XAI_FEATURE_PATH)
 st.sidebar.header("Artifact Status")
 st.sidebar.write(f"Productivity model: {'Loaded' if productivity_model is not None else 'Missing'}")
 st.sidebar.write(f"Sustainability model: {'Loaded' if sustainability_model is not None else 'Pending from Shravya'}")
-st.sidebar.write(f"Feature selector model: {'Loaded' if feature_selector_model is not None else 'Pending from Janhavi'}")
+st.sidebar.write(f"Feature selector model: {'Loaded' if feature_model_loaded else 'Missing'}")
+if feature_selector_load_error:
+    st.sidebar.caption(f"Feature selector load status: {feature_selector_load_error}")
 st.sidebar.write(f"Data file: {'Loaded' if data_df is not None else 'Missing'}")
 
 with st.sidebar.expander("Path Debug"):
@@ -312,7 +375,22 @@ with tabs[0]:
             if key in base:
                 base[key] = float(base[key]) + float(delta)
 
-        input_df = pd.DataFrame([base])
+        input_df = build_aligned_input_df(base, productivity_model, data_df)
+
+        feature_input_df = None
+        if feature_model_loaded:
+            feature_input_df = build_aligned_input_df(base, feature_model, data_df)
+            # Best-effort numeric coercion for non-pipeline models that require numeric arrays.
+            for col in feature_input_df.columns:
+                if not pd.api.types.is_numeric_dtype(feature_input_df[col]):
+                    if data_df is not None and col in data_df.columns:
+                        known_vals = sorted(data_df[col].dropna().astype(str).unique().tolist())
+                        val_to_num = {v: i for i, v in enumerate(known_vals)}
+                        current_val = str(feature_input_df.at[0, col])
+                        feature_input_df.at[0, col] = val_to_num.get(current_val, 0)
+                    else:
+                        feature_input_df.at[0, col] = 0
+            feature_input_df = feature_input_df.apply(pd.to_numeric, errors="coerce").fillna(0.0)
 
         local_shap_df = None
         if productivity_model is not None:
@@ -346,9 +424,33 @@ with tabs[0]:
         else:
             st.warning("`models/productivity_model.pkl` not found.")
 
+if feature_model_loaded and feature_input_df is not None:
+    try:
+        prediction = feature_model.predict(feature_input_df)
+
+        st.subheader("Model Prediction (Feature Selection)")
+
+        st.info("This model uses selected important features to predict production category efficiently.")
+
+        st.success(f"Production Category: {prediction[0]}")
+
+        # Show selected input features
+        with st.expander("🔍 View Input Features Used"):
+            st.write("Actual Input Values (Readable Format):")
+
+            input_table = pd.DataFrame([base]).T
+            input_table.columns = ["Values"]
+            st.dataframe(input_table)
+
+        # Show feature names
+        st.caption("Model is trained using top selected features (dimensionality reduction applied).")
+
+    except Exception as exc:
+        st.warning(f"Feature model prediction could not run: {exc}")
+
         if sustainability_model is None:
             st.info("Sustainability model pending from Shravya.")
-        if feature_selector_model is None:
+        if not feature_model_loaded:
             st.info("Feature selector pending from Janhavi.")
 
 with tabs[1]:
@@ -457,7 +559,7 @@ with tabs[3]:
         p_plus = st.slider("Rainfall Change", -100.0, 100.0, 0.0, 10.0)
         s_plus = st.slider("Salinity Change", -6.0, 6.0, 0.0, 0.5)
 
-        baseline_df = pd.DataFrame([base])
+        baseline_df = build_aligned_input_df(base, productivity_model, data_df)
         scenario = dict(base)
         if "temperature_celsius" in scenario:
             scenario["temperature_celsius"] = float(scenario["temperature_celsius"]) + t_plus
@@ -465,7 +567,7 @@ with tabs[3]:
             scenario["precip_mm"] = float(scenario["precip_mm"]) + p_plus
         if "water_Salinity (ppt)" in scenario:
             scenario["water_Salinity (ppt)"] = float(scenario["water_Salinity (ppt)"]) + s_plus
-        scenario_df = pd.DataFrame([scenario])
+        scenario_df = build_aligned_input_df(scenario, productivity_model, data_df)
 
         if productivity_model is not None:
             try:
