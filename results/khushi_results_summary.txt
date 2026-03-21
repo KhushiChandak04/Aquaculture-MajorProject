@@ -1,0 +1,54 @@
+﻿Khushi - Final Model Outcome Summary
+========================================
+
+Selection Policy:
+1) Highest Recall macro
+2) Then highest F1 macro
+3) Then highest Accuracy
+4) Tie-break: lower inference ms per 1000 rows
+
+Selected Strong Model:
+- XGBoost
+
+Selected Model Metrics:
+  model  accuracy  precision_macro  recall_macro  f1_macro  train_seconds  infer_ms_per_1000  model_size_mb  peak_train_ram_mb
+XGBoost  0.848144         0.896975      0.779697  0.816962       4.582627          23.677615       0.536209           2.322061
+
+All Tested Model Outcomes:
+                          model  accuracy  precision_macro  recall_macro  f1_macro  train_seconds  infer_ms_per_1000  model_size_mb  peak_train_ram_mb
+                   RandomForest  0.848144         0.896975      0.779697  0.816962       2.459558          85.725197       0.347635           3.685267
+                        XGBoost  0.848144         0.896975      0.779697  0.816962       4.582627          23.677615       0.536209           2.322061
+                   DecisionTree  0.840270         0.867104      0.775133  0.806014       0.079520          15.729921       0.013537           2.322490
+                     ExtraTrees  0.803150         0.877947      0.729760  0.771484       1.690886          77.372778       2.294809           3.221735
+             LogisticRegression  0.682790         0.661245      0.697575  0.663847       0.286610          13.382902       0.014207          27.234430
+LogisticRegression_XAI_Improved  0.676040         0.656391      0.694081  0.658654       0.125252           4.272553       0.012696           1.242347
+Perfect, this is now aligned with your strong-model strategy.
+
+Final outputs created:
+
+Strong model selected: XGBoost
+Same top quality as RandomForest, but much better inference latency in your results.
+Summary text file with full model table:
+khushi_results_summary.txt
+
+Graphical proof plot:
+khushi_final_model_comparison.png
+
+What this graph proves clearly:
+
+Left chart (quality): XGBoost and RandomForest are top performers on key metrics.
+Right chart (efficiency): XGBoost is in a better practical position than RandomForest for inference speed while maintaining top quality.
+So for best strong model to proceed, XGBoost is justified.
+Also yes, total tested outcomes shown now are 6 in final comparison:
+
+RandomForest
+XGBoost
+DecisionTree
+ExtraTrees
+LogisticRegression
+LogisticRegression_XAI_Improved
+
+If you want, I can make one final tiny change: add a 3-line Final Decision markdown cell at the end of 02_productivity_khushi.ipynb so anyone opening the notebook instantly sees Proceeding with XGBoost and why.
+
+GPT-5.3-Codex - 1x
+

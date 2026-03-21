@@ -1,0 +1,24 @@
+Khushi - Final Model Outcome Summary
+========================================
+
+Selection Policy:
+1) Highest Recall macro
+2) Then highest F1 macro
+3) Then highest Accuracy
+4) Tie-break: lower inference ms per 1000 rows
+
+Selected Strong Model:
+- XGBoost
+
+Selected Model Metrics:
+  model  accuracy  precision_macro  recall_macro  f1_macro  train_seconds  infer_ms_per_1000  model_size_mb  peak_train_ram_mb
+XGBoost  0.848144         0.896975      0.779697  0.816962       0.407733          10.410574       0.536209           2.321748
+
+All Tested Model Outcomes:
+                          model  accuracy  precision_macro  recall_macro  f1_macro  train_seconds  infer_ms_per_1000  model_size_mb  peak_train_ram_mb
+                   RandomForest  0.848144         0.896975      0.779697  0.816962       2.621640         118.853431       0.347635           3.925645
+                        XGBoost  0.848144         0.896975      0.779697  0.816962       0.407733          10.410574       0.536209           2.321748
+                   DecisionTree  0.840270         0.867104      0.775133  0.806014       0.062711          14.090551       0.013537           2.321824
+                     ExtraTrees  0.803150         0.877947      0.729760  0.771484       1.868302          95.508774       2.294809           3.302573
+             LogisticRegression  0.682790         0.661245      0.697575  0.663847       0.226211           6.032058       0.014207           2.357533
+LogisticRegression_XAI_Improved  0.676040         0.656391      0.694081  0.658654       0.219579          10.249719       0.012696           1.242175
