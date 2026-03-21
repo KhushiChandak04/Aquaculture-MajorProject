@@ -212,19 +212,19 @@ pip install -r requirements.txt
 
 
 ## Advanced Enhancements (For 8.5–9/10 Project)
-1. Interactive Dashboard (High Impact)
-Display predictions
-SHAP explanations
-Feature importance visualization
-2. Time-Series Forecasting
-Add LSTM / ARIMA models
-Predict future production trends
-3. Scenario Simulation
-Example: temperature +2°C impact on production
-“What-if” analysis for sustainability
-4. Policy Recommendation Layer (Optional)
-Suggest optimal environmental conditions
-Provide decision-support insights
+1. Interactive Dashboard (High Impact) - Implemented
+- Display predictions from `models/productivity_model.pkl`
+- SHAP local explanation for current prediction (with safe fallback)
+- Feature-importance visualization from XAI/benchmark outputs
+2. Time-Series Forecasting - Partially Implemented
+- ARIMA/trend forecasting is active in Streamlit
+- LSTM module is optional and can be added after team model merge
+3. Scenario Simulation - Implemented
+- Example: temperature increase and rainfall/salinity shifts
+- What-if analysis for risk output under changing conditions
+4. Policy Recommendation Layer (Optional) - Implemented (Rule-Based Interim)
+- Suggest environmental operating actions from observed risk drivers
+- Upgrade to model-driven policy recommendations after full team integration
 
 ---
 
