@@ -1,0 +1,18 @@
+Sustainability Classification Results
+====================================
+Best model: MLP
+Accuracy: 1.0000
+Precision (macro): 1.0000
+Recall (macro): 1.0000
+F1 (macro): 1.0000
+
+All model metrics saved in sustainability_metrics.csv
+Charts saved:
+- sustainability_model_comparison.png
+- sustainability_inference_training_ram.png
+
+Best-model SHAP plot:
+- sustainability_shap_best_mlp.png
+
+Model artifact:
+- models/sustainability_model.pkl (MLP)
