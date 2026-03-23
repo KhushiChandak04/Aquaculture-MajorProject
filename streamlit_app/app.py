@@ -290,6 +290,7 @@ def compute_local_shap(_model_obj, background_df: pd.DataFrame, input_df: pd.Dat
             contrib = arr[0] if arr.ndim == 2 else arr[0].mean(axis=-1)
 
         out = pd.DataFrame({"feature": feature_names, "contribution": contrib})
+        out["feature_pretty"] = out["feature"].astype(str).map(pretty_feature_name)
         out["abs_contribution"] = out["contribution"].abs()
         return out.sort_values("abs_contribution", ascending=False), None
     except Exception as exc:
@@ -374,8 +375,46 @@ def describe_risk_shift(before_label, after_label):
 
 
 st.set_page_config(page_title="Aquaculture Final Dashboard", page_icon="AQ", layout="wide")
+st.markdown(
+    """
+<style>
+.block-container {
+    padding-top: 1.2rem;
+}
+.info-card {
+    background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%);
+    border: 1px solid #dbe9ff;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+}
+.impact-card {
+    background: linear-gradient(135deg, #eefaf2 0%, #e7f6ff 100%);
+    border: 1px solid #cfe8d7;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
 st.title("Aquaculture Final Integrated Dashboard")
 st.caption("Productivity + Sustainability + Genomic integration with explainability and forecasting")
+
+st.markdown(
+    """
+<div class="info-card">
+<b>Quick start:</b><br>
+1. Select profile context and tune sliders.<br>
+2. Read model outputs and confidence.<br>
+3. Use interpretation blocks for action understanding.<br>
+4. Validate decisions using explainability and scenario tabs.<br><br>
+<i>Decision-support tool only; not a clinical/diagnostic substitute.</i>
+</div>
+""",
+    unsafe_allow_html=True,
+)
 
 productivity_model = load_pickle(PRODUCTIVITY_MODEL_PATH)
 sustainability_bundle = load_pickle(SUSTAINABILITY_MODEL_PATH)
@@ -409,11 +448,11 @@ st.sidebar.write(f"Processed dataset: {'Loaded' if data_df is not None else 'Mis
 st.sidebar.write(f"SHAP runtime: {'Available' if HAS_SHAP else 'Not available'}")
 st.sidebar.write(f"ARIMA runtime: {'Available' if HAS_ARIMA else 'Fallback mode'}")
 
-with st.sidebar.expander("Paths"):
-    st.write(f"Productivity model path: {PRODUCTIVITY_MODEL_PATH}")
-    st.write(f"Sustainability model path: {SUSTAINABILITY_MODEL_PATH}")
-    st.write(f"Genomic model path: {FEATURE_SELECTOR_PATH}")
-    st.write(f"Data path: {DATA_FILE}")
+st.sidebar.markdown("**Runtime Paths**")
+st.sidebar.caption(f"Productivity model path: {PRODUCTIVITY_MODEL_PATH}")
+st.sidebar.caption(f"Sustainability model path: {SUSTAINABILITY_MODEL_PATH}")
+st.sidebar.caption(f"Genomic model path: {FEATURE_SELECTOR_PATH}")
+st.sidebar.caption(f"Data path: {DATA_FILE}")
 
 if data_df is None:
     st.error("Processed dataset missing. Run preprocessing first.")
@@ -430,15 +469,16 @@ with tabs[0]:
         "Use it to understand immediate model outcomes and confidence under controlled parameter changes."
     )
 
-    with st.expander("How to read this tab"):
-        st.markdown(
-            """
-        1. Productivity output estimates the disease-pressure class from environment plus genomic context.
-        2. Sustainability output estimates long-term operational balance and ecological robustness.
-        3. Genomic output provides the selected model class from feature-driven genomic signals.
-        4. SHAP chart explains why the productivity model gave the current prediction by ranking feature contributions.
+    st.markdown(
         """
-        )
+**How to read this tab**
+
+1. Productivity output estimates disease-pressure class from environmental and genomic context.
+2. Sustainability output estimates long-term operational resilience.
+3. Genomic output reflects selected feature-driven genomic signal behavior.
+4. SHAP chart explains why the productivity model produced the current prediction.
+"""
+    )
 
     mode = st.selectbox(
         "Profile Mode",
@@ -450,6 +490,17 @@ with tabs[0]:
     )
 
     profile = dict(base)
+    if "country" in data_df.columns:
+        countries = sorted(data_df["country"].dropna().astype(str).unique().tolist())
+        default_country_idx = countries.index("India") if "India" in countries else 0
+        selected_country = st.selectbox(
+            "Country context for this simulation",
+            countries,
+            index=default_country_idx,
+            help="This changes only the context profile fed into the model; outputs are still model-based class predictions.",
+        )
+        profile["country"] = selected_country
+
     if mode == "High-Risk Environmental Stress":
         for key, delta in [
             ("temperature_celsius", 2.0),
@@ -469,10 +520,46 @@ with tabs[0]:
             if key in profile:
                 profile[key] = float(profile[key]) + delta
 
+    st.markdown("### Impact Controls")
+    st.markdown(
+        """
+1. Temperature Delta: simulates thermal stress pressure.
+2. Rainfall Delta: simulates dilution/recharge shifts affecting water balance.
+3. Salinity Delta: simulates osmotic stress impacting health and yield stability.
+"""
+    )
+
     c1, c2, c3 = st.columns(3)
-    temp_delta = c1.slider("Temperature Delta", -5.0, 5.0, 0.0, 0.5)
-    rain_delta = c2.slider("Rainfall Delta", -50.0, 50.0, 0.0, 5.0)
-    salinity_delta = c3.slider("Salinity Delta", -5.0, 5.0, 0.0, 0.25)
+    temp_delta = c1.slider(
+        "Temperature Delta (deg C)",
+        -5.0,
+        5.0,
+        0.0,
+        0.5,
+        help="Positive means warmer than baseline. Negative means cooler than baseline.",
+    )
+    rain_delta = c2.slider(
+        "Rainfall Delta (mm)",
+        -50.0,
+        50.0,
+        0.0,
+        5.0,
+        help="Positive means wetter than baseline. Negative means drier than baseline.",
+    )
+    salinity_delta = c3.slider(
+        "Salinity Delta (ppt)",
+        -5.0,
+        5.0,
+        0.0,
+        0.25,
+        help="Positive means higher salinity than baseline.",
+    )
+
+    baseline_snapshot = {
+        "temperature_celsius": float(base.get("temperature_celsius", np.nan)),
+        "precip_mm": float(base.get("precip_mm", np.nan)),
+        "water_Salinity (ppt)": float(base.get("water_Salinity (ppt)", np.nan)),
+    }
 
     for key, delta in [
         ("temperature_celsius", temp_delta),
@@ -481,6 +568,36 @@ with tabs[0]:
     ]:
         if key in profile:
             profile[key] = float(profile[key]) + float(delta)
+
+    after_snapshot = {
+        "temperature_celsius": float(profile.get("temperature_celsius", np.nan)),
+        "precip_mm": float(profile.get("precip_mm", np.nan)),
+        "water_Salinity (ppt)": float(profile.get("water_Salinity (ppt)", np.nan)),
+    }
+
+    summary_df = pd.DataFrame(
+        [
+            {
+                "Parameter": "Temperature (deg C)",
+                "Baseline": baseline_snapshot["temperature_celsius"],
+                "Adjusted": after_snapshot["temperature_celsius"],
+                "Change": after_snapshot["temperature_celsius"] - baseline_snapshot["temperature_celsius"],
+            },
+            {
+                "Parameter": "Rainfall (mm)",
+                "Baseline": baseline_snapshot["precip_mm"],
+                "Adjusted": after_snapshot["precip_mm"],
+                "Change": after_snapshot["precip_mm"] - baseline_snapshot["precip_mm"],
+            },
+            {
+                "Parameter": "Salinity (ppt)",
+                "Baseline": baseline_snapshot["water_Salinity (ppt)"],
+                "Adjusted": after_snapshot["water_Salinity (ppt)"],
+                "Change": after_snapshot["water_Salinity (ppt)"] - baseline_snapshot["water_Salinity (ppt)"],
+            },
+        ]
+    )
+    st.dataframe(summary_df.round(3), width="stretch")
 
     productivity_input = build_aligned_input_df(profile, productivity_model, data_df)
     sustainability_input = build_aligned_input_df(profile, sustainability_bundle if not isinstance(sustainability_bundle, dict) else sustainability_bundle.get("model"), data_df, bundle=sustainability_bundle if isinstance(sustainability_bundle, dict) else None)
@@ -529,11 +646,14 @@ with tabs[0]:
             if shap_df is not None:
                 top = shap_df.head(10)
                 fig, ax = plt.subplots(figsize=(9, 4.5))
-                sns.barplot(data=top, y="feature", x="contribution", ax=ax)
+                sns.barplot(data=top, y="feature_pretty", x="contribution", ax=ax)
                 ax.axvline(0.0, color="black", linewidth=1)
                 ax.set_title("Local SHAP Contributions")
                 st.pyplot(fig)
-                st.dataframe(top[["feature", "contribution", "abs_contribution"]], width="stretch")
+                st.caption(
+                    "Naming guide: num__ indicates transformed numeric features; cat__country_* are one-hot encoded country flags."
+                )
+                st.dataframe(top[["feature_pretty", "contribution", "abs_contribution"]], width="stretch")
             else:
                 st.info(shap_err)
 
@@ -555,15 +675,16 @@ with tabs[1]:
         "It supports model trust, selection justification, and technical defense in evaluation."
     )
 
-    with st.expander("What SHAP, feature importance, and benchmark plots mean"):
-        st.markdown(
-            """
-        1. SHAP: signed contribution of each feature to one prediction; higher absolute value means stronger local influence.
-        2. Feature importance: average global influence over many samples, useful for ranking key drivers.
-        3. Model comparison plot: relative performance among candidate models for final selection.
-        4. Efficiency plot: trade-off between quality and operational cost (train time, inference time, RAM).
+    st.markdown(
         """
-        )
+**Interpretation Guide**
+
+1. SHAP: signed contribution of each feature to one prediction; larger absolute values indicate stronger influence.
+2. Feature importance: average global influence over many samples.
+3. Model comparison plots: evidence for final model selection quality.
+4. Efficiency plots: trade-off between quality and operational cost (train time, inference time, RAM).
+"""
+    )
 
     st.markdown("### Productivity")
     if productivity_metrics_df is not None:
@@ -594,17 +715,18 @@ with tabs[2]:
         "ARIMA is used when available; otherwise a trend-based fallback is applied."
     )
 
-    with st.expander("How forecasting is computed"):
-        st.markdown(
-            """
-        1. ARIMA(1,1,1):
-           AR term (p=1) captures lag dependence,
-           differencing (d=1) removes trend level,
-           MA term (q=1) models residual shock carryover.
-        2. If ARIMA is unavailable, rolling-trend extrapolation is used for continuity.
-        3. Forecast is decision-support, not ground truth; it should be interpreted with scenario and policy tabs.
+    st.markdown(
         """
-        )
+**Forecasting Logic**
+
+1. ARIMA(1,1,1):
+AR term (p=1) captures lag dependence,
+differencing (d=1) removes trend level,
+MA term (q=1) models residual shock carryover.
+2. If ARIMA is unavailable, rolling-trend extrapolation is used.
+3. Forecast is decision-support, not ground truth.
+"""
+    )
 
     if "year" not in data_df.columns or "production" not in data_df.columns:
         st.warning("Forecasting requires year and production columns.")
@@ -641,19 +763,41 @@ with tabs[3]:
         "This tab performs what-if experimentation by perturbing environmental drivers and comparing baseline vs scenario outputs."
     )
 
-    with st.expander("How to explain scenario outcomes"):
-        st.markdown(
-            """
-        1. Baseline uses median environmental conditions from the processed dataset.
-        2. Scenario applies user-defined deltas to temperature, rainfall, and salinity.
-        3. If output class changes, the direction indicates either risk escalation or mitigation potential.
+    st.markdown(
         """
-        )
+**Scenario Interpretation**
+
+1. Baseline uses median environmental conditions from the processed dataset.
+2. Scenario applies user-defined deltas to temperature, rainfall, and salinity.
+3. Class shifts indicate risk escalation, stability, or mitigation potential.
+"""
+    )
 
     sim1, sim2, sim3 = st.columns(3)
-    t_plus = sim1.slider("Scenario Temperature Change", -4.0, 4.0, 2.0, 0.5)
-    p_plus = sim2.slider("Scenario Rainfall Change", -100.0, 100.0, 0.0, 10.0)
-    s_plus = sim3.slider("Scenario Salinity Change", -6.0, 6.0, 0.0, 0.5)
+    t_plus = sim1.slider(
+        "Scenario Temperature Change (deg C)",
+        -4.0,
+        4.0,
+        2.0,
+        0.5,
+        help="Use this to stress-test warming/cooling impact on model class outputs.",
+    )
+    p_plus = sim2.slider(
+        "Scenario Rainfall Change (mm)",
+        -100.0,
+        100.0,
+        0.0,
+        10.0,
+        help="Use this to simulate drought/wet-shock shifts.",
+    )
+    s_plus = sim3.slider(
+        "Scenario Salinity Change (ppt)",
+        -6.0,
+        6.0,
+        0.0,
+        0.5,
+        help="Use this to simulate salinity stress events.",
+    )
 
     baseline = dict(base)
     scenario = dict(base)
@@ -697,15 +841,16 @@ with tabs[4]:
         "Recommendations are currently rule-based and aligned with integrated model signals."
     )
 
-    with st.expander("How to explain policy recommendations"):
-        st.markdown(
-            """
-        1. Productivity and sustainability classes trigger risk-prioritized actions.
-        2. Environmental parameter checks add preventive controls.
-        3. Genomic importance contributes monitoring priorities.
-        4. This layer is interpretable now and can be upgraded later to a learned policy optimizer.
+    st.markdown(
         """
-        )
+**Policy Interpretation**
+
+1. Productivity and sustainability classes trigger risk-prioritized actions.
+2. Environmental parameter checks add preventive controls.
+3. Genomic importance contributes monitoring priorities.
+4. This layer is interpretable now and can be upgraded to a learned policy optimizer.
+"""
+    )
 
     policy_input = build_aligned_input_df(base, productivity_model, data_df)
     prod_label = None
@@ -739,6 +884,32 @@ with tabs[4]:
 
     for idx, rec in enumerate(recs, start=1):
         st.write(f"{idx}. {rec}")
+
+    st.markdown("### Real-World Impact and India Scope")
+    st.markdown(
+        """
+<div class="impact-card">
+<b>Operational value:</b><br>
+1. Early warning for risk escalation before major farm losses.<br>
+2. Better resource allocation for aeration, feed, and water-quality interventions.<br>
+3. Explainable insights that make decisions auditable for field teams and stakeholders.<br>
+4. Forecast-driven planning support for production and logistics.
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+<div class="impact-card">
+<b>India contribution potential:</b><br>
+1. Enables climate-resilient aquaculture strategies under variable salinity, rainfall, and temperature.<br>
+2. Supports productivity stabilization and reduced volatility at farm level.<br>
+3. Provides a reproducible AI blueprint that can scale from pilot farms to district/state programs.<br>
+4. Strengthens translational R&D by unifying ML, DL, genomics, and explainability in one deployable stack.
+</div>
+""",
+        unsafe_allow_html=True,
+    )
 
     st.markdown("### System Readiness")
     readiness = pd.DataFrame(

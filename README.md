@@ -1,123 +1,113 @@
 ﻿# Aquaculture Intelligence Platform
 
-Production-grade, research-oriented, explainable AI pipeline for aquaculture risk intelligence, sustainability analytics, and genomic-driven model interpretation.
+Research-grade, explainable AI system for aquaculture risk intelligence, sustainability scoring, and genomic-aware decision support.
 
-## Project Vision
-This repository delivers an integrated multi-model decision system for aquaculture operations. It combines climate, water quality, production, and genomic signals into a single interpretable intelligence stack with real-time inference, explainability, forecasting, scenario stress-testing, and policy guidance.
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-150458?logo=pandas&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-013243?logo=numpy&logoColor=white)
+![Scikit-Learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikit-learn&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?logo=tensorflow&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white)
+![SHAP](https://img.shields.io/badge/SHAP-Explainability-0C7BDC)
+![Statsmodels](https://img.shields.io/badge/Statsmodels-Forecasting-4B8BBE)
 
-## Team and Research Tracks
-| Contributor | Research Focus | Notebook |
+## Executive Summary
+This repository implements an end-to-end analytical stack that fuses climate, water-quality, production, and genomic signals into a unified inference workflow. The platform is built for interpretable decision support, including local explainability, time-series forecasting, scenario stress tests, and policy-oriented recommendations.
+
+## Research Objectives
+1. Build reproducible, multi-model pipelines over a shared processed dataset.
+2. Compare model behavior across productivity, sustainability, and genomic tracks.
+3. Expose model decisions using explainability outputs.
+4. Convert technical inference into action-oriented farm guidance.
+
+## Team and Workstreams
+| Contributor | Focus Area | Notebook |
 |---|---|---|
 | Khushi | Productivity and disease-pressure modeling, integration architecture | notebooks/02_productivity_khushi.ipynb |
-| Shravya | Sustainability classification with deep architectures | notebooks/03_sustainability_shravya.ipynb |
+| Shravya | Sustainability classification with deep learning variants | notebooks/03_sustainability_shravya.ipynb |
 | Janhavi | Genomic feature selection and model diagnostics | notebooks/04_genomic_xai_janhavi.ipynb |
 
 ## System Architecture
-1. Unified preprocessing layer standardizes multi-source data into one analytical dataset.
-2. Three specialized model tracks train independently with reproducible artifacts.
-3. Streamlit orchestration layer aligns features and executes synchronized inference.
-4. Explainability and forecasting modules convert predictions into operational insight.
-5. Scenario and policy layers translate signals into action-oriented decisions.
+1. Shared preprocessing creates a standardized analytical dataset.
+2. Independent model tracks train and export reproducible artifacts.
+3. Streamlit integration layer aligns features and runs synchronized inference.
+4. Explainability and forecasting modules add model accountability and planning context.
+5. Scenario and policy modules transform model outputs into actionable recommendations.
 
-## Repository Layout
-```
+## Repository Structure
+```text
 Aquaculture-MajorProject/
-├── data/
-│   ├── raw/
-│   └── processed/
-├── models/
-│   ├── productivity_model.pkl
-│   ├── sustainability_model.pkl
-│   └── feature_selector.pkl
-├── notebooks/
-│   ├── 01_shared_preprocessing.ipynb
-│   ├── 02_productivity_khushi.ipynb
-│   ├── 03_sustainability_shravya.ipynb
-│   └── 04_genomic_xai_janhavi.ipynb
-├── preprocessing/
-├── results/
-│   ├── productivity_metrics.csv
-│   ├── sustainability_metrics.csv
-│   ├── genomic_feature_importance.csv
-│   └── final_project_results_summary.md
-├── scripts/
-│   ├── build_sustainability_model.py
-│   └── generate_final_results_summary.py
-└── streamlit_app/
-    └── app.py
+|- data/
+|  |- raw/
+|  |- processed/
+|- models/
+|  |- productivity_model.pkl
+|  |- sustainability_model.pkl
+|  |- feature_selector.pkl
+|- notebooks/
+|  |- 01_shared_preprocessing.ipynb
+|  |- 02_productivity_khushi.ipynb
+|  |- 03_sustainability_shravya.ipynb
+|  |- 04_genomic_xai_janhavi.ipynb
+|- preprocessing/
+|- results/
+|  |- productivity_metrics.csv
+|  |- sustainability_metrics.csv
+|  |- genomic_feature_importance.csv
+|  |- final_project_results_summary.md
+|- scripts/
+|  |- build_sustainability_model.py
+|  |- generate_final_results_summary.py
+|- streamlit_app/
+|  |- app.py
+|- run_all.py
+|- requirements.txt
+|- README.md
 ```
 
-## Model Artifacts and Outputs
-| Track | Primary Artifact | Core Output |
+## Model Artifacts
+| Track | Artifact | Output Type |
 |---|---|---|
-| Productivity | models/productivity_model.pkl | disease-pressure class estimation |
-| Sustainability | models/sustainability_model.pkl | sustainability class prediction with confidence |
-| Genomic | models/feature_selector.pkl | genomic-informed predictive class signal |
+| Productivity | models/productivity_model.pkl | disease-pressure class inference |
+| Sustainability | models/sustainability_model.pkl | sustainability class plus confidence |
+| Genomic | models/feature_selector.pkl | genomic-informed class signal |
 
-## Advanced Enhancements Status
-1. Interactive dashboard: Implemented
-2. SHAP local interpretability: Implemented with safe fallback
-3. Forecasting engine: Implemented with ARIMA and robust trend fallback
-4. Scenario simulation: Implemented for multi-parameter stress testing
-5. Policy recommendation layer: Implemented as interpretable rule-based engine
-6. Consolidated project reporting: Implemented via results/final_project_results_summary.md
-
-## Dashboard Tab Guide
+## Dashboard Modules
 ### Predictions
-Purpose:
-Real-time integrated inference from productivity, sustainability, and genomic models on a common farm profile.
-
-Interpretation:
-- Productivity class reflects modeled disease-pressure tendency.
-- Sustainability class reflects long-horizon operational resilience.
-- Genomic class reflects feature-driven genomic response signal.
-- SHAP panel explains local drivers for the current productivity prediction.
+Always-on interactive inference for all integrated model tracks with profile controls and interpretation blocks.
 
 ### Explainability
-Purpose:
-Model transparency and evaluation defense through metrics, importance, and benchmark artifacts.
-
-Interpretation:
-- SHAP explains local contribution direction and magnitude.
-- Feature-importance tables summarize global influence.
-- Comparison and efficiency plots justify final model selection.
+Model evidence layer with SHAP contribution views, benchmark metrics, and model-comparison artifacts.
 
 ### Forecasting
-Purpose:
-Projection of production trajectory from historical yearly production.
-
-Interpretation:
-- ARIMA(1,1,1) captures lag dynamics, differenced trend, and residual memory.
-- Trend fallback ensures continuity when ARIMA backend is unavailable.
-- Forecast should be combined with scenario outputs for planning confidence.
+Production trend projection using ARIMA(1,1,1) with robust trend fallback.
 
 ### Scenario Simulation
-Purpose:
-What-if analysis under parameter perturbations such as temperature, rainfall, and salinity shifts.
-
-Interpretation:
-- Baseline vs scenario class transitions indicate risk escalation, stability, or mitigation potential.
-- Supports stress-testing of operational decisions before field deployment.
+What-if parameter perturbation for thermal, rainfall, and salinity stress analysis.
 
 ### Policy Recommendations
-Purpose:
-Actionable decision layer that maps model outputs to operational guidance.
+Rule-guided action layer translating model outcomes into operational controls.
 
-Interpretation:
-- Current engine is interpretable and rule-based.
-- Recommendations prioritize water quality control, stress mitigation, and genomic monitoring.
-- Designed for upgrade to model-driven policy optimization in future work.
+## Advanced Features Status
+1. Multi-model dashboard integration: Implemented
+2. Local SHAP explainability with fallback: Implemented
+3. Time-series forecasting with fallback: Implemented
+4. Scenario stress testing: Implemented
+5. Policy recommendation layer: Implemented
+6. Consolidated reporting pipeline: Implemented
 
 ## Tech Stack
-- Python
-- pandas and NumPy for analytical data handling
-- scikit-learn for preprocessing and classical ML
-- TensorFlow and Keras for deep neural architectures
-- SHAP for local explainable AI attribution
-- statsmodels for ARIMA forecasting
-- matplotlib and seaborn for scientific visualization
-- Streamlit for interactive model operations and decision UI
-- joblib for artifact serialization and reproducibility
+| Layer | Tools |
+|---|---|
+| Language | Python |
+| Data | pandas, NumPy |
+| ML | scikit-learn, XGBoost |
+| DL | TensorFlow, Keras |
+| Explainability | SHAP |
+| Forecasting | statsmodels (ARIMA) |
+| Visualization | matplotlib, seaborn |
+| App Layer | Streamlit |
+| Artifact IO | joblib |
 
 ## Setup
 ```bash
@@ -129,22 +119,22 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## Run Pipeline and Dashboard
+## Run
 ```bash
 python run_all.py
 python scripts/generate_final_results_summary.py
 python -m streamlit run streamlit_app/app.py
 ```
 
-## Consolidated Final Results
-Single-file project summary is generated at:
+## Consolidated Results
+The unified final summary is generated at:
 
 results/final_project_results_summary.md
 
-This file aggregates artifact readiness, best model snapshots, top genomic drivers, and system-level inference status in one concise deliverable.
+It captures artifact readiness, best-model snapshots, top genomic drivers, and system-level inference coverage.
 
-## Research and Delivery Quality Notes
-- End-to-end integration is dynamic across all tab modules.
-- Runtime safely handles multiple model bundle formats.
-- Explainability and forecasting components include fallback strategies for reliability.
-- The repository is structured for reproducible evaluation and scalable extension.
+## Quality Notes
+1. Integration is dynamic across all tab modules.
+2. Runtime handles mixed model bundle formats safely.
+3. Explainability and forecasting include fallback strategies for reliability.
+4. The repository layout supports reproducible experimentation and extension.
