@@ -1,5 +1,5 @@
-from preprocessing.run_all import run_all
+from scripts.full_rebuild import main as full_rebuild
 
 
 if __name__ == "__main__":
-    run_all()
+    full_rebuild()

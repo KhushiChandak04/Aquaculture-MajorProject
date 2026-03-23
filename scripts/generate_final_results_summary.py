@@ -112,7 +112,7 @@ def build_summary_text() -> str:
     lines.append("- Local SHAP explanations: Integrated with safe fallback")
     lines.append("- Forecasting: ARIMA with trend fallback")
     lines.append("- Scenario simulation: Baseline vs perturbation analysis")
-    lines.append("- Policy recommendations: Rule-based integrated layer")
+    lines.append("- Policy recommendations: Hybrid model-assisted scoring plus rule layer")
 
     return "\n".join(lines) + "\n"
 

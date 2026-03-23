@@ -122,9 +122,28 @@ pip install -r requirements.txt
 ## Run
 ```bash
 python run_all.py
-python scripts/generate_final_results_summary.py
 python -m streamlit run streamlit_app/app.py
 ```
+
+`python run_all.py` now executes a full rebuild workflow:
+1. shared preprocessing
+2. productivity retraining + benchmark refresh
+3. genomic retraining + metric refresh
+4. sustainability retraining
+5. genomic importance recomputation
+6. validation and leakage audit generation
+7. consolidated summary regeneration
+8. quality gate validation
+
+## Reproducibility and Quality Gate
+```bash
+python scripts/quality_gate.py
+```
+
+## Generated Research Artifacts
+- results/final_project_results_summary.md
+- results/validation_audit.md
+- results/novelty_evidence.md
 
 ## Consolidated Results
 The unified final summary is generated at:
