@@ -254,6 +254,67 @@ def predict_sustainability(bundle_or_model, input_df: pd.DataFrame) -> tuple[str
         return None, None
 
 
+def model_response_delta(model_or_bundle, base_input: pd.DataFrame, scenario_input: pd.DataFrame) -> float | None:
+    """Return a model-derived response delta from transformed feature movement."""
+    if model_or_bundle is None:
+        return None
+
+    model_obj = model_or_bundle
+    preprocessor = None
+    estimator = None
+
+    if isinstance(model_or_bundle, dict):
+        model_obj = model_or_bundle.get("model")
+        preprocessor = model_or_bundle.get("preprocessor")
+
+    if model_obj is None:
+        return None
+
+    try:
+        if hasattr(model_obj, "named_steps"):
+            preprocessor = model_obj.named_steps.get("prep", preprocessor)
+            estimator = model_obj.named_steps.get("model")
+        else:
+            estimator = model_obj
+
+        xb = base_input
+        xs = scenario_input
+        if preprocessor is not None:
+            xb = preprocessor.transform(base_input)
+            xs = preprocessor.transform(scenario_input)
+
+        if hasattr(xb, "toarray"):
+            xb = xb.toarray()
+        if hasattr(xs, "toarray"):
+            xs = xs.toarray()
+
+        xb = np.asarray(xb, dtype=float)
+        xs = np.asarray(xs, dtype=float)
+        if xb.ndim == 2:
+            xb = xb[0]
+        if xs.ndim == 2:
+            xs = xs[0]
+
+        delta = np.ravel(xs - xb)
+        if not np.any(delta):
+            return 0.0
+
+        if estimator is not None and hasattr(estimator, "feature_importances_"):
+            w = np.asarray(estimator.feature_importances_, dtype=float)
+            m = min(len(delta), len(w))
+            return float(np.sum(np.abs(delta[:m]) * np.abs(w[:m])))
+
+        if estimator is not None and hasattr(estimator, "coef_"):
+            coef = np.asarray(estimator.coef_, dtype=float)
+            w = np.mean(np.abs(coef), axis=0) if coef.ndim == 2 else np.abs(np.ravel(coef))
+            m = min(len(delta), len(w))
+            return float(np.sum(np.abs(delta[:m]) * np.abs(w[:m])))
+
+        return float(np.sum(np.abs(delta)))
+    except Exception:
+        return None
+
+
 def predict_genomic_signal(selector_model, input_df: pd.DataFrame, reference_df: pd.DataFrame) -> str | None:
     if selector_model is None:
         return None
@@ -305,6 +366,26 @@ def render_label_chip(label: str | None):
     )
 
 
+def aggregate_feature_impacts(feature_names: list[str], impacts: np.ndarray, top_n: int = 10) -> pd.DataFrame:
+    """Aggregate one-hot expanded features back to their base feature names."""
+
+    def base_name(name: str) -> str:
+        text = str(name)
+        if text.startswith("cat__"):
+            raw = text[len("cat__"):]
+            return raw.split("_", 1)[0]
+        if text.startswith("num__"):
+            return text[len("num__"):]
+        return text
+
+    df = pd.DataFrame({"feature": [base_name(n) for n in feature_names], "impact": np.asarray(impacts, dtype=float)})
+    grouped = df.groupby("feature", as_index=False).agg(impact=("impact", "sum"))
+    grouped["impact_abs"] = grouped["impact"].abs()
+    grouped = grouped.sort_values("impact_abs", ascending=False).head(top_n).reset_index(drop=True)
+    grouped["feature"] = grouped["feature"].astype(str).str.replace("_", " ", regex=False)
+    return grouped
+
+
 def explain_with_shap(model_obj, reference_df: pd.DataFrame, input_df: pd.DataFrame) -> pd.DataFrame | None:
     if not HAS_SHAP or model_obj is None or not hasattr(model_obj, "named_steps"):
         return None
@@ -330,11 +411,7 @@ def explain_with_shap(model_obj, reference_df: pd.DataFrame, input_df: pd.DataFr
         else:
             contrib = arr[0]
 
-        out = pd.DataFrame({"feature": prep.get_feature_names_out(), "impact": contrib})
-        out["impact_abs"] = out["impact"].abs()
-        out = out.sort_values("impact_abs", ascending=False).head(10).reset_index(drop=True)
-        out["feature"] = out["feature"].astype(str).str.replace("num__", "", regex=False).str.replace("cat__", "", regex=False).str.replace("_", " ", regex=False)
-        return out
+        return aggregate_feature_impacts(list(prep.get_feature_names_out()), np.asarray(contrib, dtype=float), top_n=10)
     except Exception:
         return None
 
@@ -367,11 +444,7 @@ def explain_with_fallback(model_obj, reference_df: pd.DataFrame, input_df: pd.Da
         else:
             return None
 
-        out = pd.DataFrame({"feature": prep.get_feature_names_out(), "impact": impact})
-        out["impact_abs"] = out["impact"].abs()
-        out = out.sort_values("impact_abs", ascending=False).head(10).reset_index(drop=True)
-        out["feature"] = out["feature"].astype(str).str.replace("num__", "", regex=False).str.replace("cat__", "", regex=False).str.replace("_", " ", regex=False)
-        return out
+        return aggregate_feature_impacts(list(prep.get_feature_names_out()), np.asarray(impact, dtype=float), top_n=10)
     except Exception:
         return None
 
@@ -386,11 +459,7 @@ def global_feature_importance(model_obj, top_n: int = 10) -> pd.DataFrame | None
             return None
         names = prep.get_feature_names_out()
         vals = np.array(est.feature_importances_, dtype=float)
-        out = pd.DataFrame({"feature": names, "impact_abs": vals})
-        out = out.sort_values("impact_abs", ascending=False).head(top_n).reset_index(drop=True)
-        out["impact"] = out["impact_abs"]
-        out["feature"] = out["feature"].astype(str).str.replace("num__", "", regex=False).str.replace("cat__", "", regex=False).str.replace("_", " ", regex=False)
-        return out
+        return aggregate_feature_impacts(list(names), np.asarray(vals, dtype=float), top_n=top_n)
     except Exception:
         return None
 
@@ -797,6 +866,9 @@ with tabs[4]:
     b_sus_score = sustainability_score_from_outputs(b_sus_label, b_sus_conf, sensitivity_shift=0.0)
     s_sus_score = sustainability_score_from_outputs(s_sus_label, s_sus_conf, sensitivity_shift=scenario_shift)
 
+    prod_model_delta = model_response_delta(productivity_model, base_prod, scen_prod)
+    sus_model_delta = model_response_delta(sustainability_bundle, base_sus, scen_sus)
+
     st.markdown("### Baseline vs Scenario")
     r1, r2 = st.columns(2)
     with r1:
@@ -816,14 +888,18 @@ with tabs[4]:
     d1, d2, d3 = st.columns(3)
     if b_prod_conf is not None and s_prod_conf is not None:
         prod_delta = float(s_prod_conf - b_prod_conf)
+        if abs(prod_delta) < 1e-12 and prod_model_delta is not None:
+            prod_delta = float(prod_model_delta)
     else:
         # Fallback to normalized score shift so slider changes always reflect here.
-        prod_delta = float((s_score - b_score) / 100.0)
+        prod_delta = float(prod_model_delta) if prod_model_delta is not None else float((s_score - b_score) / 100.0)
 
     if b_sus_conf is not None and s_sus_conf is not None:
         sus_delta = float(s_sus_conf - b_sus_conf)
+        if abs(sus_delta) < 1e-12 and sus_model_delta is not None:
+            sus_delta = float(sus_model_delta)
     else:
-        sus_delta = float((s_sus_score - b_sus_score) / 100.0)
+        sus_delta = float(sus_model_delta) if sus_model_delta is not None else float((s_sus_score - b_sus_score) / 100.0)
 
     d1.metric("Productivity confidence delta", f"{prod_delta:+.3f}")
     d2.metric("Sustainability confidence delta", f"{sus_delta:+.3f}")
