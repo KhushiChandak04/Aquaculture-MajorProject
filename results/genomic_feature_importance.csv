@@ -1,6 +1,6 @@
 feature,importance_mean,importance_std,method
-country,0.6646794150731158,0.005385011022363197,prediction_sensitivity
-year,0.07938132733408323,0.0026354137678068967,prediction_sensitivity
+country,0.647512224414515,0.003921477426402109,prediction_sensitivity
+year,0.2727631466071888,0.003048387502496859,prediction_sensitivity
 genomic_GC_Content_global_mean,0.0,0.0,prediction_sensitivity
 genomic_Num_A_global_mean,0.0,0.0,prediction_sensitivity
 genomic_Num_T_global_mean,0.0,0.0,prediction_sensitivity

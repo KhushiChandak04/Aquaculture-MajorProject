@@ -19,10 +19,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install minimal dependencies
+      - name: Install training dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas
+          pip install numpy pandas scikit-learn xgboost joblib scipy psutil
+
+      - name: Build datasets and models
+        run: |
+          python scripts/train_models.py
 
       - name: Run quality gate
         run: |

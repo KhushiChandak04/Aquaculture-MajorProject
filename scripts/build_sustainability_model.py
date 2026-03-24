@@ -5,9 +5,9 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
-from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
+from xgboost import XGBClassifier
 
 
 def build_target(df: pd.DataFrame) -> pd.Series:
@@ -62,11 +62,16 @@ def main() -> None:
     label_encoder = LabelEncoder()
     y_enc = label_encoder.fit_transform(y)
 
-    model = MLPClassifier(
-        hidden_layer_sizes=(64, 32),
-        max_iter=400,
+    model = XGBClassifier(
+        objective="multi:softprob",
+        eval_metric="mlogloss",
+        n_estimators=300,
+        max_depth=6,
+        learning_rate=0.05,
+        subsample=0.9,
+        colsample_bytree=0.9,
         random_state=42,
-        learning_rate_init=0.001,
+        n_jobs=-1,
     )
 
     x_train, x_test, y_train, y_test = train_test_split(
@@ -84,7 +89,7 @@ def main() -> None:
     metrics_df = pd.DataFrame(
         [
             {
-                "model": "MLP_rebuild",
+                "model": "XGBoost_rebuild",
                 "accuracy": float(accuracy_score(y_test, y_pred)),
                 "precision": float(precision_score(y_test, y_pred, average="macro", zero_division=0)),
                 "recall": float(recall_score(y_test, y_pred, average="macro", zero_division=0)),

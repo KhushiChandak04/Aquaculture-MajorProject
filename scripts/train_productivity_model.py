@@ -13,7 +13,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 try:
@@ -101,31 +101,9 @@ def eval_model(name, model, xtr, xte, ytr, yte):
 def pick_best_latency_aware(metrics_df: pd.DataFrame) -> pd.Series:
     if metrics_df.empty:
         raise ValueError("No metrics available to select best model")
-
-    best_recall = float(metrics_df["recall_macro"].max())
-    best_f1 = float(metrics_df["f1_macro"].max())
-    best_acc = float(metrics_df["accuracy"].max())
-
-    # Keep quality-first behavior but allow latency to decide among near-equivalent models.
-    eps_recall = 0.003
-    eps_f1 = 0.003
-    eps_acc = 0.003
-
-    shortlisted = metrics_df[
-        (metrics_df["recall_macro"] >= best_recall - eps_recall)
-        & (metrics_df["f1_macro"] >= best_f1 - eps_f1)
-        & (metrics_df["accuracy"] >= best_acc - eps_acc)
-    ]
-
-    if shortlisted.empty:
-        shortlisted = metrics_df.sort_values(
-            ["recall_macro", "f1_macro", "accuracy"],
-            ascending=[False, False, False],
-        ).head(1)
-
-    return shortlisted.sort_values(
-        ["infer_ms_per_1000", "model_size_mb", "train_seconds"],
-        ascending=[True, True, True],
+    return metrics_df.sort_values(
+        ["recall_macro", "f1_macro", "accuracy", "infer_ms_per_1000", "model_size_mb", "train_seconds"],
+        ascending=[False, False, False, True, True, True],
     ).iloc[0]
 
 
@@ -136,7 +114,10 @@ def main() -> None:
     df = pd.read_csv(DATA_PATH)
     X, y = make_dataset(df)
 
-    xtr, xte, ytr, yte = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    label_encoder = LabelEncoder()
+    y_encoded = label_encoder.fit_transform(y)
+
+    xtr, xte, ytr, yte = train_test_split(X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded)
 
     candidates = [
         ("LogisticRegression", LogisticRegression(max_iter=500, n_jobs=None)),
