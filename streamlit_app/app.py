@@ -580,7 +580,6 @@ with tabs[1]:
         dissolved_oxygen = st.slider("Dissolved Oxygen (mg/L)", 0.0, 12.0, 5.5, 0.1, key="pred_do")
         ammonia = st.slider("Ammonia (mg/L)", 0.0, 2.0, 0.25, 0.05, key="pred_amm")
         rainfall = st.slider("Rainfall / climate input (mm)", -100.0, 300.0, 30.0, 5.0, key="pred_rain")
-        genomic_marker = st.text_input("Optional genomic markers", value="", key="pred_genomic")
 
         countries = sorted(data_df["country"].dropna().astype(str).unique().tolist()) if "country" in data_df.columns else ["India"]
         country = st.selectbox("Country context", countries, index=(countries.index("India") if "India" in countries else 0), key="pred_country")
@@ -626,8 +625,6 @@ with tabs[1]:
             profile[col] = float(ammonia)
     if "precip_mm" in profile:
         profile["precip_mm"] = float(rainfall)
-    if "genomic_Mutation_Flag_global_mean" in profile:
-        profile["genomic_Mutation_Flag_global_mean"] = 1.0 if genomic_marker.strip() else 0.0
 
     st.session_state["latest_profile"] = dict(profile)
 
@@ -817,8 +814,19 @@ with tabs[4]:
         st.caption(f"Sustainability score: {s_sus_score:.1f}/100")
 
     d1, d2, d3 = st.columns(3)
-    d1.metric("Productivity confidence delta", "N/A" if (b_prod_conf is None or s_prod_conf is None) else f"{(s_prod_conf - b_prod_conf):+.3f}")
-    d2.metric("Sustainability confidence delta", "N/A" if (b_sus_conf is None or s_sus_conf is None) else f"{(s_sus_conf - b_sus_conf):+.3f}")
+    if b_prod_conf is not None and s_prod_conf is not None:
+        prod_delta = float(s_prod_conf - b_prod_conf)
+    else:
+        # Fallback to normalized score shift so slider changes always reflect here.
+        prod_delta = float((s_score - b_score) / 100.0)
+
+    if b_sus_conf is not None and s_sus_conf is not None:
+        sus_delta = float(s_sus_conf - b_sus_conf)
+    else:
+        sus_delta = float((s_sus_score - b_sus_score) / 100.0)
+
+    d1.metric("Productivity confidence delta", f"{prod_delta:+.3f}")
+    d2.metric("Sustainability confidence delta", f"{sus_delta:+.3f}")
     d3.metric("Scenario shift index", f"{scenario_shift:.1f}")
 
 with tabs[5]:

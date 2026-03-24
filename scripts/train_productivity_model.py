@@ -48,8 +48,27 @@ def make_dataset(df: pd.DataFrame):
 
 
 def make_preprocessor(X: pd.DataFrame):
-    cat_cols = [c for c in X.columns if X[c].dtype == "object"]
-    num_cols = [c for c in X.columns if c not in cat_cols]
+    # Robustly split columns by semantic dtype. Relying on object-only checks can
+    # misclassify pandas category/string extension dtypes as numeric in CI.
+    num_cols = [c for c in X.columns if pd.api.types.is_numeric_dtype(X[c])]
+    cat_cols = [c for c in X.columns if c not in num_cols]
+
+    # Defensive fallback: if any supposed numeric column contains non-numeric text,
+    # move it to categorical encoding to avoid StandardScaler conversion failures.
+    safe_num_cols = []
+    moved_to_cat = []
+    for c in num_cols:
+        coerced = pd.to_numeric(X[c], errors="coerce")
+        if X[c].notna().any() and coerced.isna().any():
+            moved_to_cat.append(c)
+            cat_cols.append(c)
+        else:
+            safe_num_cols.append(c)
+
+    num_cols = safe_num_cols
+    if moved_to_cat:
+        print(f"Moved non-numeric columns to categorical encoder: {moved_to_cat}")
+
     return ColumnTransformer(
         transformers=[
             ("num", StandardScaler(), num_cols),
