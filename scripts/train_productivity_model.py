@@ -16,6 +16,14 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
+try:
+    from xgboost import XGBClassifier
+
+    HAS_XGBOOST = True
+except Exception:
+    XGBClassifier = None
+    HAS_XGBOOST = False
+
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_PATH = BASE_DIR / "data" / "processed" / "final_dataset.csv"
@@ -90,6 +98,37 @@ def eval_model(name, model, xtr, xte, ytr, yte):
     return pipe, metrics
 
 
+def pick_best_latency_aware(metrics_df: pd.DataFrame) -> pd.Series:
+    if metrics_df.empty:
+        raise ValueError("No metrics available to select best model")
+
+    best_recall = float(metrics_df["recall_macro"].max())
+    best_f1 = float(metrics_df["f1_macro"].max())
+    best_acc = float(metrics_df["accuracy"].max())
+
+    # Keep quality-first behavior but allow latency to decide among near-equivalent models.
+    eps_recall = 0.003
+    eps_f1 = 0.003
+    eps_acc = 0.003
+
+    shortlisted = metrics_df[
+        (metrics_df["recall_macro"] >= best_recall - eps_recall)
+        & (metrics_df["f1_macro"] >= best_f1 - eps_f1)
+        & (metrics_df["accuracy"] >= best_acc - eps_acc)
+    ]
+
+    if shortlisted.empty:
+        shortlisted = metrics_df.sort_values(
+            ["recall_macro", "f1_macro", "accuracy"],
+            ascending=[False, False, False],
+        ).head(1)
+
+    return shortlisted.sort_values(
+        ["infer_ms_per_1000", "model_size_mb", "train_seconds"],
+        ascending=[True, True, True],
+    ).iloc[0]
+
+
 def main() -> None:
     if not DATA_PATH.exists():
         raise FileNotFoundError(f"Missing dataset file: {DATA_PATH}")
@@ -106,27 +145,47 @@ def main() -> None:
         ("ExtraTrees", ExtraTreesClassifier(n_estimators=250, random_state=42, n_jobs=-1)),
     ]
 
+    if HAS_XGBOOST:
+        candidates.append(
+            (
+                "XGBoost",
+                XGBClassifier(
+                    n_estimators=220,
+                    max_depth=5,
+                    learning_rate=0.06,
+                    subsample=0.9,
+                    colsample_bytree=0.9,
+                    eval_metric="mlogloss",
+                    tree_method="hist",
+                    random_state=42,
+                ),
+            )
+        )
+
     rows = []
-    best_pipe = None
-    best_score = -np.inf
+    trained = {}
 
     for name, model in candidates:
         pipe, metrics = eval_model(name, model, xtr, xte, ytr, yte)
         rows.append(metrics)
-        if metrics["f1_macro"] > best_score:
-            best_score = metrics["f1_macro"]
-            best_pipe = pipe
+        trained[name] = pipe
 
-    if best_pipe is None:
+    if not trained:
         raise RuntimeError("No productivity model could be trained")
+
+    metrics_df = pd.DataFrame(rows)
+    best_row = pick_best_latency_aware(metrics_df)
+    best_model_name = str(best_row["model"])
+    best_pipe = trained[best_model_name]
 
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
     METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(best_pipe, MODEL_PATH)
-    pd.DataFrame(rows).sort_values("f1_macro", ascending=False).to_csv(METRICS_PATH, index=False)
+    metrics_df.sort_values(["recall_macro", "f1_macro", "accuracy"], ascending=[False, False, False]).to_csv(METRICS_PATH, index=False)
 
     print(f"Saved productivity model -> {MODEL_PATH}")
     print(f"Saved productivity metrics -> {METRICS_PATH}")
+    print(f"Selected best model (quality-first, latency-aware): {best_model_name}")
 
 
 if __name__ == "__main__":

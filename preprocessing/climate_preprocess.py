@@ -26,35 +26,36 @@ def preprocess_climate(input_path, output_path):
     df = pd.read_csv(input_path)
     df["year"] = _extract_year(df)
 
-    # Standardize column names and keep key climate signals if available.
+    # Standardize column names.
     df.columns = [c.lower() for c in df.columns]
-    possible_cols = {
-        "temperature",
-        "temp",
-        "temperature_celsius",
-        "precipitation",
-        "rainfall",
-        "precip_mm",
-        "humidity",
-        "year",
-    }
-    selected_cols = [c for c in df.columns if c in possible_cols]
 
-    if "year" not in selected_cols:
-        selected_cols.append("year")
+    climate_df = pd.DataFrame()
+    climate_df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
-    # Ensure yearly aggregation has at least one feature besides year.
-    feature_cols = [c for c in selected_cols if c != "year"]
+    if "country" in df.columns:
+        climate_df["country"] = df["country"].astype(str)
+
+    # Use canonical climate feature names while accepting common aliases.
+    temp_col = next((c for c in ["temperature_celsius", "temperature", "temp"] if c in df.columns), None)
+    precip_col = next((c for c in ["precip_mm", "precipitation", "rainfall"] if c in df.columns), None)
+    humid_col = next((c for c in ["humidity"] if c in df.columns), None)
+
+    if temp_col is not None:
+        climate_df["temperature_celsius"] = pd.to_numeric(df[temp_col], errors="coerce")
+    if precip_col is not None:
+        climate_df["precip_mm"] = pd.to_numeric(df[precip_col], errors="coerce")
+    if humid_col is not None:
+        climate_df["humidity"] = pd.to_numeric(df[humid_col], errors="coerce")
+
+    feature_cols = [c for c in climate_df.columns if c not in ["year", "country"]]
     if not feature_cols:
-        raise ValueError("No supported climate feature columns found for aggregation.")
+        raise ValueError("No supported climate feature columns found after cleaning.")
 
-    climate_df = df[selected_cols].copy()
-    for col in feature_cols:
-        climate_df[col] = pd.to_numeric(climate_df[col], errors="coerce")
+    climate_df = climate_df.dropna(subset=["year"])
+    climate_df["year"] = climate_df["year"].astype("Int64")
 
-    climate_df = climate_df.dropna(subset=["year"]) 
-    climate_df = climate_df.groupby("year", as_index=False).mean(numeric_only=True)
-    climate_df = climate_df.dropna()
+    # Keep row-level records to preserve full dataset size for modeling.
+    climate_df = climate_df.dropna(subset=feature_cols, how="all")
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)

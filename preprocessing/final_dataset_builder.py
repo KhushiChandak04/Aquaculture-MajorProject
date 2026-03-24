@@ -21,6 +21,22 @@ def _add_constant_columns(base_df: pd.DataFrame, source_df: pd.DataFrame, prefix
     return base_df
 
 
+def _aggregate_for_keys(df: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
+    numeric_cols = [c for c in df.select_dtypes(include=["number"]).columns if c not in keys]
+    object_cols = [c for c in df.select_dtypes(exclude=["number"]).columns if c not in keys]
+
+    agg_map: dict[str, str] = {}
+    for col in numeric_cols:
+        agg_map[col] = "mean"
+    for col in object_cols:
+        agg_map[col] = "first"
+
+    if not agg_map:
+        return df[keys].drop_duplicates().reset_index(drop=True)
+
+    return df.groupby(keys, as_index=False).agg(agg_map)
+
+
 def build_final_dataset(processed_dir):
     processed_dir = Path(processed_dir)
 
@@ -39,13 +55,20 @@ def build_final_dataset(processed_dir):
         raise ValueError("production_clean.csv must contain year column.")
 
     climate_df = pd.read_csv(climate_path)
-    if "year" in climate_df.columns:
+    climate_df.columns = [c.lower() for c in climate_df.columns]
+    if "year" in climate_df.columns and "country" in climate_df.columns:
+        climate_df["country"] = climate_df["country"].astype(str)
+        climate_df = _aggregate_for_keys(climate_df, ["country", "year"])
+        final_df = final_df.merge(climate_df, on=["country", "year"], how="left")
+    elif "year" in climate_df.columns:
+        climate_df = _aggregate_for_keys(climate_df, ["year"])
         final_df = final_df.merge(climate_df, on="year", how="left")
     else:
         final_df = _add_constant_columns(final_df, climate_df, prefix="climate")
 
     water_df = pd.read_csv(water_path)
     if "year" in water_df.columns:
+        water_df = _aggregate_for_keys(water_df, ["year"])
         water_renamed = water_df.rename(
             columns={c: f"water_{c}" for c in water_df.columns if c != "year"}
         )

@@ -2,23 +2,22 @@ Khushi - Final Model Outcome Summary
 ========================================
 
 Selection Policy:
-1) Highest Recall macro
-2) Then highest F1 macro
-3) Then highest Accuracy
-4) Tie-break: lower inference ms per 1000 rows
+1) Build top-quality band (Recall/F1/Accuracy within 0.003 of best)
+2) Inside quality band, choose lowest inference latency
+3) Tie-breakers: smaller model size, then lower train time
 
 Selected Strong Model:
 - XGBoost
 
 Selected Model Metrics:
   model  accuracy  precision_macro  recall_macro  f1_macro  train_seconds  infer_ms_per_1000  model_size_mb  peak_train_ram_mb
-XGBoost  0.848144         0.896975      0.779697  0.816962       0.941056          30.396175       0.537638           2.322276
+XGBoost  0.894511         0.915433      0.838723  0.862627        1.07585           9.914365       0.977524           5.757142
 
 All Tested Model Outcomes:
                           model  accuracy  precision_macro  recall_macro  f1_macro  train_seconds  infer_ms_per_1000  model_size_mb  peak_train_ram_mb
-                   RandomForest  0.848144         0.896975      0.779697  0.816962       7.665288         234.642745       0.347635           3.124872
-                        XGBoost  0.848144         0.896975      0.779697  0.816962       0.941056          30.396175       0.537638           2.322276
-                   DecisionTree  0.840270         0.867104      0.775133  0.806014       0.113255          14.609336       0.013537           2.323014
-                     ExtraTrees  0.803150         0.877947      0.729760  0.771484       5.410940         399.116198       2.294809           2.766871
-             LogisticRegression  0.682790         0.661245      0.697575  0.663847       0.544348          16.482115       0.014207           2.371772
-LogisticRegression_XAI_Improved  0.676040         0.656391      0.694081  0.658654       0.419992          15.302700       0.012696           1.244977
+                        XGBoost  0.894511         0.915433      0.838723  0.862627       1.075850           9.914365       0.977524           5.757142
+                   DecisionTree  0.875214         0.897599      0.819201  0.844591       0.146766           3.692667       0.014544           5.758052
+                   RandomForest  0.860635         0.847703      0.816377  0.828974       3.952928          47.188679       0.633478           9.679558
+                     ExtraTrees  0.861063         0.895261      0.802243  0.832291       1.968660          46.445540       3.101816           8.263086
+             LogisticRegression  0.736278         0.714901      0.729112  0.718307       0.478674           2.587093       0.014207           5.808928
+LogisticRegression_XAI_Improved  0.738851         0.722486      0.733695  0.723355       0.389919           5.005532       0.012559           2.847890

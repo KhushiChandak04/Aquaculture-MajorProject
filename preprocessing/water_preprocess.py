@@ -37,9 +37,9 @@ def preprocess_water(input_path, output_path):
 
     if year_series is not None:
         numeric_df = numeric_df.copy()
-        numeric_df["year"] = year_series
+        numeric_df["year"] = pd.to_numeric(year_series, errors="coerce")
         numeric_df = numeric_df.dropna(subset=["year"])
-        numeric_df = numeric_df.groupby("year", as_index=False).mean(numeric_only=True)
+        numeric_df["year"] = numeric_df["year"].astype("Int64")
 
     feature_cols = [c for c in numeric_df.columns if c != "year"]
     if not feature_cols:

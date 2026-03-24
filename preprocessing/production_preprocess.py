@@ -26,8 +26,7 @@ def preprocess_production(input_path, output_path):
     df["year"] = pd.to_numeric(df["year"], errors="coerce")
     df["production"] = pd.to_numeric(df["production"], errors="coerce")
 
-    # Filter recent data and remove nulls.
-    df = df[df["year"] >= 2000]
+    # Keep all available historical records; only drop invalid rows.
     df = df.dropna(subset=required_cols)
 
     output_path = Path(output_path)
