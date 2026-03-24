@@ -14,5 +14,20 @@
   "test_shape": [
     889,
     21
-  ]
+  ],
+  "final_dataset_metrics": {
+    "file": "final_dataset.csv",
+    "rows": 11657,
+    "columns": 22,
+    "missing_cells": 0,
+    "duplicate_rows": 0,
+    "numeric_columns": 20,
+    "categorical_columns": 2,
+    "year_min": 1960,
+    "year_max": 2018,
+    "unique_countries": 242,
+    "production_min": 0.0,
+    "production_max": 106451316.491233,
+    "production_mean": 1702216.4944174765
+  }
 }

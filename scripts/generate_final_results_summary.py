@@ -19,6 +19,39 @@ def read_csv(path: Path):
         return None
 
 
+def read_sustainability_txt_metrics(path: Path):
+    if not path.exists():
+        return None
+
+    metrics = {
+        "model": "MLP",
+        "accuracy": None,
+        "precision": None,
+        "recall": None,
+        "f1": None,
+    }
+
+    try:
+        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    except Exception:
+        return None
+
+    for line in lines:
+        s = line.strip()
+        if s.startswith("Best model:"):
+            metrics["model"] = s.split(":", 1)[1].strip() or "MLP"
+        elif s.startswith("Accuracy:"):
+            metrics["accuracy"] = s.split(":", 1)[1].strip()
+        elif s.startswith("Precision (macro):"):
+            metrics["precision"] = s.split(":", 1)[1].strip()
+        elif s.startswith("Recall (macro):"):
+            metrics["recall"] = s.split(":", 1)[1].strip()
+        elif s.startswith("F1 (macro):"):
+            metrics["f1"] = s.split(":", 1)[1].strip()
+
+    return metrics
+
+
 def pick_best_row(df: pd.DataFrame):
     if df is None or len(df) == 0:
         return None
@@ -50,31 +83,41 @@ def sort_for_display(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def df_to_markdown_table(df: pd.DataFrame) -> list[str]:
-    if df is None or len(df) == 0:
-        return ["- No rows available"]
+def fmt4(value):
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return "N/A"
+    try:
+        return f"{float(value):.4f}"
+    except Exception:
+        return str(value)
 
-    show_df = df.copy()
-    for col in show_df.columns:
-        if pd.api.types.is_float_dtype(show_df[col]):
-            show_df[col] = show_df[col].map(lambda x: f"{x:.4f}")
 
-    headers = [str(c) for c in show_df.columns]
-    lines = [
-        "| " + " | ".join(headers) + " |",
-        "|" + "|".join(["---"] * len(headers)) + "|",
-    ]
-    for _, row in show_df.iterrows():
-        vals = [str(row[c]) for c in show_df.columns]
-        lines.append("| " + " | ".join(vals) + " |")
-    return lines
+def first_existing(row: pd.Series | None, candidates: list[str]):
+    if row is None:
+        return None
+    for c in candidates:
+        if c in row.index:
+            return row[c]
+    return None
 
 
 def build_summary_text() -> str:
-    productivity = read_csv(RESULTS_DIR / "productivity_metrics.csv")
+    productivity = read_csv(RESULTS_DIR / "khushi_short_summary.csv")
     sustainability = read_csv(RESULTS_DIR / "sustainability_metrics.csv")
     genomic_metrics = read_csv(RESULTS_DIR / "janhavi_model_metrics.csv")
     genomic_importance = read_csv(RESULTS_DIR / "genomic_feature_importance.csv")
+
+    sustainability_txt = read_sustainability_txt_metrics(RESULTS_DIR / "sustainability_results_summary.txt")
+
+    if productivity is not None and "model" in productivity.columns:
+        # User requested to remove ExtraTrees from displayed productivity outputs.
+        productivity = productivity[productivity["model"].astype(str) != "ExtraTrees"].copy()
+
+        # Keep one best row per model name to avoid duplicated branch entries.
+        if "f1_macro" in productivity.columns:
+            productivity = productivity.sort_values("f1_macro", ascending=False).drop_duplicates(subset=["model"], keep="first")
+        else:
+            productivity = productivity.drop_duplicates(subset=["model"], keep="first")
 
     best_prod = pick_best_row(productivity)
     best_sus = pick_best_row(sustainability)
@@ -103,47 +146,89 @@ def build_summary_text() -> str:
 
     lines.append("## Best Productivity Model Snapshot")
     if best_prod is None:
-        lines.append("- productivity_metrics.csv not found or unreadable")
+        lines.append("- khushi_short_summary.csv not found or unreadable")
     else:
         for k, v in to_pairs(best_prod):
             lines.append(f"- {k}: {v}")
-    lines.append("")
 
+    lines.append("")
     lines.append("## All Productivity Models")
-    if productivity is None:
-        lines.append("- productivity_metrics.csv not found or unreadable")
+    if productivity is None or len(productivity) == 0:
+        lines.append("- khushi_short_summary.csv not found or unreadable")
     else:
-        lines.extend(df_to_markdown_table(sort_for_display(productivity)))
-    lines.append("")
+        show_prod = sort_for_display(productivity)
+        for col in show_prod.columns:
+            if pd.api.types.is_float_dtype(show_prod[col]):
+                show_prod[col] = show_prod[col].map(lambda x: f"{x:.4f}")
+        headers = [str(c) for c in show_prod.columns]
+        lines.append("| " + " | ".join(headers) + " |")
+        lines.append("|" + "|".join(["---"] * len(headers)) + "|")
+        for _, row in show_prod.iterrows():
+            lines.append("| " + " | ".join(str(row[c]) for c in show_prod.columns) + " |")
 
+    lines.append("")
     lines.append("## Best Sustainability Model Snapshot")
-    if best_sus is None:
-        lines.append("- sustainability_metrics.csv not found or unreadable")
+    if sustainability_txt is not None:
+        lines.append(f"- model: {sustainability_txt['model']}")
+        lines.append(f"- accuracy: {sustainability_txt['accuracy'] or 'N/A'}")
+        lines.append(f"- precision: {sustainability_txt['precision'] or 'N/A'}")
+        lines.append(f"- recall: {sustainability_txt['recall'] or 'N/A'}")
+        lines.append(f"- f1: {sustainability_txt['f1'] or 'N/A'}")
+    elif best_sus is None:
+        lines.append("- sustainability results not found or unreadable")
     else:
         for k, v in to_pairs(best_sus):
             lines.append(f"- {k}: {v}")
-    lines.append("")
 
+    lines.append("")
     lines.append("## All Sustainability Models")
-    if sustainability is None:
+    if sustainability_txt is not None:
+        lines.append("| model | accuracy | precision | recall | f1 |")
+        lines.append("|---|---|---|---|---|")
+        lines.append(
+            "| "
+            f"{sustainability_txt['model']} | "
+            f"{sustainability_txt['accuracy'] or 'N/A'} | "
+            f"{sustainability_txt['precision'] or 'N/A'} | "
+            f"{sustainability_txt['recall'] or 'N/A'} | "
+            f"{sustainability_txt['f1'] or 'N/A'} |"
+        )
+    elif sustainability is None:
         lines.append("- sustainability_metrics.csv not found or unreadable")
     else:
-        lines.extend(df_to_markdown_table(sort_for_display(sustainability)))
-    lines.append("")
+        show_sus = sort_for_display(sustainability)
+        for col in show_sus.columns:
+            if pd.api.types.is_float_dtype(show_sus[col]):
+                show_sus[col] = show_sus[col].map(lambda x: f"{x:.4f}")
+        headers = [str(c) for c in show_sus.columns]
+        lines.append("| " + " | ".join(headers) + " |")
+        lines.append("|" + "|".join(["---"] * len(headers)) + "|")
+        for _, row in show_sus.iterrows():
+            lines.append("| " + " | ".join(str(row[c]) for c in show_sus.columns) + " |")
 
+    lines.append("")
     lines.append("## Best Genomic Model Snapshot")
     if best_gen is None:
         lines.append("- janhavi_model_metrics.csv not found or unreadable")
     else:
         for k, v in to_pairs(best_gen):
             lines.append(f"- {k}: {v}")
-    lines.append("")
 
+    lines.append("")
     lines.append("## All Genomic Models")
     if genomic_metrics is None:
         lines.append("- janhavi_model_metrics.csv not found or unreadable")
     else:
-        lines.extend(df_to_markdown_table(sort_for_display(genomic_metrics)))
+        show_gen = sort_for_display(genomic_metrics)
+        for col in show_gen.columns:
+            if pd.api.types.is_float_dtype(show_gen[col]):
+                show_gen[col] = show_gen[col].map(lambda x: f"{x:.4f}")
+        headers = [str(c) for c in show_gen.columns]
+        lines.append("| " + " | ".join(headers) + " |")
+        lines.append("|" + "|".join(["---"] * len(headers)) + "|")
+        for _, row in show_gen.iterrows():
+            lines.append("| " + " | ".join(str(row[c]) for c in show_gen.columns) + " |")
+
     lines.append("")
 
     lines.append("## Top Genomic Feature Drivers")

@@ -15,6 +15,34 @@ def build_target(df: pd.DataFrame) -> pd.Series:
     return pd.qcut(df["production"], q=3, labels=["Low", "Medium", "High"])
 
 
+def make_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
+    # Robust split: pandas string/category extension dtypes may appear in CI.
+    numeric_cols = [c for c in X.columns if pd.api.types.is_numeric_dtype(X[c])]
+    categorical_cols = [c for c in X.columns if c not in numeric_cols]
+
+    # Defensive fallback for mixed-type columns that look numeric but contain text.
+    safe_numeric_cols = []
+    moved_to_cat = []
+    for c in numeric_cols:
+        coerced = pd.to_numeric(X[c], errors="coerce")
+        if X[c].notna().any() and coerced.isna().any():
+            moved_to_cat.append(c)
+            categorical_cols.append(c)
+        else:
+            safe_numeric_cols.append(c)
+
+    if moved_to_cat:
+        print(f"Moved non-numeric columns to categorical encoder: {moved_to_cat}")
+
+    return ColumnTransformer(
+        transformers=[
+            ("num", StandardScaler(), safe_numeric_cols),
+            ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols),
+        ],
+        remainder="drop",
+    )
+
+
 def main() -> None:
     base = Path(__file__).resolve().parents[1]
     data_path = base / "data" / "processed" / "final_dataset.csv"
@@ -47,17 +75,7 @@ def main() -> None:
 
     X = df[feature_cols].copy()
     y = target.astype(str)
-
-    categorical_cols = [c for c in X.columns if X[c].dtype == "object"]
-    numeric_cols = [c for c in X.columns if c not in categorical_cols]
-
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("num", StandardScaler(), numeric_cols),
-            ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols),
-        ],
-        remainder="drop",
-    )
+    preprocessor = make_preprocessor(X)
 
     label_encoder = LabelEncoder()
     y_enc = label_encoder.fit_transform(y)
