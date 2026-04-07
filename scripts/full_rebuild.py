@@ -4,6 +4,7 @@ from preprocessing.run_all import run_all as run_preprocessing
 
 from scripts.build_sustainability_model import main as build_sustainability_model
 from scripts.generate_final_results_summary import main as generate_summary
+from scripts.generate_visual_reports import main as generate_visual_reports
 from scripts.quality_gate import main as run_quality_gate
 from scripts.recompute_genomic_importance import main as recompute_genomic_importance
 from scripts.train_genomic_model import main as train_genomic_model
@@ -16,28 +17,31 @@ RESULTS_DIR = BASE_DIR / "results"
 
 
 def main() -> None:
-    print("[1/8] Running shared preprocessing pipeline...")
+    print("[1/9] Running shared preprocessing pipeline...")
     run_preprocessing()
 
-    print("[2/8] Training productivity model and benchmarks...")
+    print("[2/9] Training productivity model and benchmarks...")
     train_productivity_model()
 
-    print("[3/8] Training genomic model and benchmarks...")
+    print("[3/9] Training genomic model and benchmarks...")
     train_genomic_model()
 
-    print("[4/8] Building sustainability model bundle...")
+    print("[4/9] Building sustainability model bundle...")
     build_sustainability_model()
 
-    print("[5/8] Recomputing genomic importance (prediction sensitivity)...")
+    print("[5/9] Recomputing genomic importance (prediction sensitivity)...")
     recompute_genomic_importance()
 
-    print("[6/8] Running validation and leakage audit...")
+    print("[6/9] Running validation and leakage audit...")
     run_validation_audit()
 
-    print("[7/8] Regenerating consolidated project summary...")
+    print("[7/9] Generating visual reports...")
+    generate_visual_reports()
+
+    print("[8/9] Regenerating consolidated project summary...")
     generate_summary()
 
-    print("[8/8] Running quality gate checks...")
+    print("[9/9] Running quality gate checks...")
     gate_code = run_quality_gate()
     if gate_code != 0:
         raise SystemExit(gate_code)

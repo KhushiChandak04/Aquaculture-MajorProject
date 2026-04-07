@@ -31,6 +31,7 @@ BASE_DIR = APP_DIR.parent
 MODELS_DIR = BASE_DIR / "models"
 RESULTS_DIR = BASE_DIR / "results"
 DATA_FILE = BASE_DIR / "data" / "processed" / "final_dataset.csv"
+XAI_EVIDENCE_REPORT_PATH = RESULTS_DIR / "xai_evidence_report.md"
 
 PRODUCTIVITY_MODEL_PATH = MODELS_DIR / "productivity_model.pkl"
 SUSTAINABILITY_MODEL_PATH = MODELS_DIR / "sustainability_model.pkl"
@@ -59,6 +60,16 @@ def load_pickle(path: Path):
 @st.cache_data
 def load_data() -> pd.DataFrame | None:
     return safe_read_csv(DATA_FILE)
+
+
+@st.cache_data
+def load_markdown_file(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    try:
+        return path.read_text(encoding="utf-8")
+    except Exception:
+        return None
 
 
 def first_existing(cols: list[str], df: pd.DataFrame) -> str | None:
@@ -366,17 +377,27 @@ def render_label_chip(label: str | None):
     )
 
 
-def aggregate_feature_impacts(feature_names: list[str], impacts: np.ndarray, top_n: int = 10) -> pd.DataFrame:
-    """Aggregate one-hot expanded features back to their base feature names."""
+def aggregate_feature_impacts(feature_names: list[str], impacts: np.ndarray, top_n: int = 10, base_features: list[str] | None = None) -> pd.DataFrame:
+    """Aggregate expanded transformed features back to their original base feature names."""
+
+    base_features = list(base_features or [])
 
     def base_name(name: str) -> str:
         text = str(name)
-        if text.startswith("cat__"):
-            raw = text[len("cat__"):]
-            return raw.split("_", 1)[0]
-        if text.startswith("num__"):
-            return text[len("num__"):]
-        return text
+        raw = text
+        if "__" in raw:
+            raw = raw.split("__", 1)[1]
+
+        if base_features:
+            if raw in base_features:
+                return raw
+            # Prefer longest match to support feature names containing underscores.
+            matches = [bf for bf in base_features if raw.startswith(f"{bf}_")]
+            if matches:
+                return sorted(matches, key=len, reverse=True)[0]
+
+        # Heuristic fallback when original feature list is unavailable.
+        return raw.split("_", 1)[0] if "_" in raw else raw
 
     df = pd.DataFrame({"feature": [base_name(n) for n in feature_names], "impact": np.asarray(impacts, dtype=float)})
     grouped = df.groupby("feature", as_index=False).agg(impact=("impact", "sum"))
@@ -411,7 +432,12 @@ def explain_with_shap(model_obj, reference_df: pd.DataFrame, input_df: pd.DataFr
         else:
             contrib = arr[0]
 
-        return aggregate_feature_impacts(list(prep.get_feature_names_out()), np.asarray(contrib, dtype=float), top_n=10)
+        return aggregate_feature_impacts(
+            list(prep.get_feature_names_out()),
+            np.asarray(contrib, dtype=float),
+            top_n=10,
+            base_features=list(getattr(prep, "feature_names_in_", [])),
+        )
     except Exception:
         return None
 
@@ -444,7 +470,12 @@ def explain_with_fallback(model_obj, reference_df: pd.DataFrame, input_df: pd.Da
         else:
             return None
 
-        return aggregate_feature_impacts(list(prep.get_feature_names_out()), np.asarray(impact, dtype=float), top_n=10)
+        return aggregate_feature_impacts(
+            list(prep.get_feature_names_out()),
+            np.asarray(impact, dtype=float),
+            top_n=10,
+            base_features=list(getattr(prep, "feature_names_in_", [])),
+        )
     except Exception:
         return None
 
@@ -459,7 +490,12 @@ def global_feature_importance(model_obj, top_n: int = 10) -> pd.DataFrame | None
             return None
         names = prep.get_feature_names_out()
         vals = np.array(est.feature_importances_, dtype=float)
-        return aggregate_feature_impacts(list(names), np.asarray(vals, dtype=float), top_n=top_n)
+        return aggregate_feature_impacts(
+            list(names),
+            np.asarray(vals, dtype=float),
+            top_n=top_n,
+            base_features=list(getattr(prep, "feature_names_in_", [])),
+        )
     except Exception:
         return None
 
@@ -531,6 +567,34 @@ def load_results_graphs() -> list[Path]:
     return sorted([p for p in RESULTS_DIR.glob("*.png") if p.is_file()])
 
 
+def group_result_graphs(graphs: list[Path]) -> dict[str, list[Path]]:
+    groups = {
+        "Spiral Net Metrics": [],
+        "Train vs Test Curves": [],
+        "Productivity Visuals": [],
+        "Sustainability Visuals": [],
+        "Genomic Visuals": [],
+        "Other Visuals": [],
+    }
+
+    for p in graphs:
+        name = p.name.lower()
+        if "spiral" in name:
+            groups["Spiral Net Metrics"].append(p)
+        elif "train_vs_test" in name or "train_val" in name or "train_trial" in name:
+            groups["Train vs Test Curves"].append(p)
+        elif name.startswith("khushi_") or "productivity" in name:
+            groups["Productivity Visuals"].append(p)
+        elif name.startswith("sustainability"):
+            groups["Sustainability Visuals"].append(p)
+        elif name.startswith("janhavi_") or "genomic" in name:
+            groups["Genomic Visuals"].append(p)
+        else:
+            groups["Other Visuals"].append(p)
+
+    return {k: v for k, v in groups.items() if v}
+
+
 st.set_page_config(page_title="Aquaculture Intelligence Platform", page_icon="AQ", layout="wide")
 
 st.markdown(
@@ -568,6 +632,7 @@ feature_selector_model = load_pickle(FEATURE_SELECTOR_PATH)
 
 data_df = load_data()
 results_graphs = load_results_graphs()
+xai_evidence_md = load_markdown_file(XAI_EVIDENCE_REPORT_PATH)
 
 st.sidebar.header("System Status")
 st.sidebar.write(f"Productivity model: {'Ready' if productivity_model is not None else 'Missing'}")
@@ -762,7 +827,7 @@ with tabs[2]:
     if exp_df is None:
         exp_df = explain_with_fallback(productivity_model, ref_input, one_input)
 
-    if exp_df is not None and len(exp_df) > 0 and float(exp_df["impact_abs"].max()) <= 1e-12:
+    if exp_df is not None and len(exp_df) > 0 and float(exp_df["impact_abs"].max()) <= 1e-5:
         exp_df = global_feature_importance(productivity_model, top_n=10)
         if exp_df is not None:
             st.info("Local change is very small for current inputs. Showing global feature importance for clarity.")
@@ -775,6 +840,11 @@ with tabs[2]:
 
         chart_df = exp_df[["feature", "impact_abs"]].set_index("feature")
         st.bar_chart(chart_df)
+
+        show_df = exp_df[["feature", "impact", "impact_abs"]].copy()
+        show_df["impact"] = show_df["impact"].map(lambda x: f"{float(x):+.6f}")
+        show_df["impact_abs"] = show_df["impact_abs"].map(lambda x: f"{float(x):.6f}")
+        st.dataframe(show_df, use_container_width=True, hide_index=True)
 
         top = exp_df.iloc[0]
         direction = "increased" if float(top["impact"]) > 0 else "reduced"
@@ -791,11 +861,29 @@ with tabs[2]:
 
     if results_graphs:
         st.divider()
-        st.markdown("### Results Graphs")
-        cols = st.columns(2)
-        for i, pth in enumerate(results_graphs):
-            with cols[i % 2]:
-                st.image(str(pth), caption=pth.name, use_container_width=True)
+        st.markdown("### Model Visual Evidence")
+        st.caption("Neatly organized plots for explainability, train/test behavior, and model-comparison insights.")
+
+        grouped = group_result_graphs(results_graphs)
+        section_names = list(grouped.keys())
+        section_tabs = st.tabs(section_names)
+
+        for tab, section in zip(section_tabs, section_names):
+            with tab:
+                images = grouped.get(section, [])
+                cols = st.columns(2)
+                for i, pth in enumerate(images):
+                    with cols[i % 2]:
+                        st.image(str(pth), caption=pth.name, use_container_width=True)
+
+    st.divider()
+    st.markdown("### Explainability Evidence")
+    st.caption("Concise interpretability evidence summary for model behavior and prediction rationale.")
+    if xai_evidence_md:
+        with st.expander("Open explainability evidence summary", expanded=False):
+            st.markdown(xai_evidence_md)
+    else:
+        st.info("Explainability evidence file is missing. Add results/xai_evidence_report.md to show it here.")
 
 with tabs[3]:
     st.subheader("Forecasting")
@@ -901,8 +989,8 @@ with tabs[4]:
     else:
         sus_delta = float(sus_model_delta) if sus_model_delta is not None else float((s_sus_score - b_sus_score) / 100.0)
 
-    d1.metric("Productivity confidence delta", f"{prod_delta:+.3f}")
-    d2.metric("Sustainability confidence delta", f"{sus_delta:+.3f}")
+    d1.metric("Productivity confidence delta", f"{prod_delta:+.6f}")
+    d2.metric("Sustainability confidence delta", f"{sus_delta:+.6f}")
     d3.metric("Scenario shift index", f"{scenario_shift:.1f}")
 
 with tabs[5]:
