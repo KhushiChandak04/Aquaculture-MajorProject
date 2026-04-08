@@ -1313,15 +1313,6 @@ with tabs[2]:
         else:
             st.warning(coverage_line + " Some result graphs are not currently loaded into the UI.")
 
-        spiral_graphs = [p for p in results_graphs if "spiral" in p.name.lower()]
-        if spiral_graphs:
-            st.markdown("#### Spiral Metrics (Complete Set)")
-            st.caption(f"Showing all spiral charts ({len(spiral_graphs)}).")
-            spiral_cols = st.columns(2)
-            for i, pth in enumerate(spiral_graphs):
-                with spiral_cols[i % 2]:
-                    st.image(str(pth), caption=pth.name, use_container_width=True)
-
         grouped = group_result_graphs(results_graphs)
         section_names = list(grouped.keys())
         section_tabs = st.tabs(section_names)
