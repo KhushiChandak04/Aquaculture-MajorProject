@@ -32,6 +32,7 @@ MODELS_DIR = BASE_DIR / "models"
 RESULTS_DIR = BASE_DIR / "results"
 DATA_FILE = BASE_DIR / "data" / "processed" / "final_dataset.csv"
 XAI_EVIDENCE_REPORT_PATH = RESULTS_DIR / "xai_evidence_report.md"
+RESULT_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 
 PRODUCTIVITY_MODEL_PATH = MODELS_DIR / "productivity_model.pkl"
 SUSTAINABILITY_MODEL_PATH = MODELS_DIR / "sustainability_model.pkl"
@@ -64,6 +65,16 @@ def load_data() -> pd.DataFrame | None:
 
 @st.cache_data
 def load_markdown_file(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    try:
+        return path.read_text(encoding="utf-8")
+    except Exception:
+        return None
+
+
+@st.cache_data
+def load_text_file(path: Path) -> str | None:
     if not path.exists():
         return None
     try:
@@ -500,6 +511,401 @@ def global_feature_importance(model_obj, top_n: int = 10) -> pd.DataFrame | None
         return None
 
 
+def build_aligned_reference_frame(
+    model_obj,
+    reference_df: pd.DataFrame,
+    bundle: dict | None = None,
+    max_rows: int = 240,
+) -> pd.DataFrame:
+    features = expected_features(model_obj, bundle=bundle)
+    if not features:
+        out = reference_df.copy()
+    else:
+        aligned: dict[str, Any] = {}
+        for col in features:
+            if col in reference_df.columns:
+                aligned[col] = reference_df[col]
+            else:
+                aligned[col] = 0.0
+        out = pd.DataFrame(aligned, columns=features)
+
+    out = out.dropna(axis=0, how="all")
+    if len(out) == 0:
+        return pd.DataFrame(columns=list(features or reference_df.columns))
+    if len(out) > max_rows:
+        out = out.sample(n=max_rows, random_state=42)
+    return out.reset_index(drop=True)
+
+
+def explain_pipeline_track(
+    model_obj,
+    reference_df: pd.DataFrame,
+    input_df: pd.DataFrame,
+    top_n: int = 10,
+) -> tuple[pd.DataFrame | None, str]:
+    exp_df = explain_with_shap(model_obj, reference_df, input_df)
+    mode = "shap" if exp_df is not None and len(exp_df) > 0 else "none"
+
+    if exp_df is None or len(exp_df) == 0:
+        exp_df = explain_with_fallback(model_obj, reference_df, input_df)
+        mode = "fallback" if exp_df is not None and len(exp_df) > 0 else "none"
+
+    if exp_df is not None and len(exp_df) > 0 and float(exp_df["impact_abs"].max()) <= 1e-5:
+        gdf = global_feature_importance(model_obj, top_n=top_n)
+        if gdf is not None and len(gdf) > 0:
+            exp_df = gdf
+            mode = "global"
+
+    if exp_df is not None and len(exp_df) > 0:
+        exp_df = exp_df.head(top_n).reset_index(drop=True)
+
+    return exp_df, mode
+
+
+def resolve_estimator(model_obj):
+    if model_obj is None:
+        return None
+    if hasattr(model_obj, "named_steps"):
+        return model_obj.named_steps.get("model", model_obj)
+    return model_obj
+
+
+def friendly_model_name(model_obj) -> str:
+    est = resolve_estimator(model_obj)
+    if est is None:
+        return "Unknown"
+
+    name = est.__class__.__name__
+    mapping = {
+        "XGBClassifier": "XGBoost",
+        "Sequential": "MLP",
+        "HistGradientBoostingClassifier": "HistGB",
+        "ExtraTreesClassifier": "ExtraTrees",
+        "RandomForestClassifier": "RandomForest",
+        "LogisticRegression": "LogisticRegression",
+    }
+    return mapping.get(name, name)
+
+
+def explain_sustainability_track(
+    bundle_or_model,
+    reference_df: pd.DataFrame,
+    input_df: pd.DataFrame,
+    top_n: int = 10,
+) -> tuple[pd.DataFrame | None, str]:
+    model_obj = bundle_or_model
+    preprocessor = None
+
+    if isinstance(bundle_or_model, dict):
+        model_obj = bundle_or_model.get("model")
+        preprocessor = bundle_or_model.get("preprocessor")
+
+    if model_obj is None:
+        return None, "none"
+
+    # If the model is a sklearn pipeline, reuse the standard SHAP/fallback path.
+    if hasattr(model_obj, "named_steps"):
+        return explain_pipeline_track(model_obj, reference_df, input_df, top_n=top_n)
+
+    # Keras bundle path (current sustainability best-model artifact).
+    if preprocessor is None:
+        return None, "none"
+
+    try:
+        bg_raw = reference_df.sample(n=min(140, len(reference_df)), random_state=42)
+        bg_t = preprocessor.transform(bg_raw)
+        one_t = preprocessor.transform(input_df)
+
+        if hasattr(bg_t, "toarray"):
+            bg_t = bg_t.toarray()
+        if hasattr(one_t, "toarray"):
+            one_t = one_t.toarray()
+
+        bg_t = np.asarray(bg_t, dtype=float)
+        one_t = np.asarray(one_t, dtype=float)
+        if bg_t.ndim == 1:
+            bg_t = bg_t.reshape(1, -1)
+        if one_t.ndim == 1:
+            one_t = one_t.reshape(1, -1)
+    except Exception:
+        return None, "none"
+
+    try:
+        feature_names = list(preprocessor.get_feature_names_out())
+    except Exception:
+        feature_names = [f"feature_{i}" for i in range(one_t.shape[1])]
+
+    base_features = list(getattr(preprocessor, "feature_names_in_", []))
+
+    def predict_fn(x):
+        x_arr = np.asarray(x, dtype=float)
+        try:
+            return model_obj.predict(x_arr, verbose=0)
+        except TypeError:
+            return model_obj.predict(x_arr)
+
+    if HAS_SHAP:
+        try:
+            # Primary path: direct SHAP explainer for tabular MLP outputs.
+            explainer = shap.Explainer(predict_fn, bg_t)
+            values = explainer(one_t)
+            arr = np.asarray(values.values, dtype=float)
+
+            pred = np.asarray(predict_fn(one_t), dtype=float)
+            cls_idx = int(np.argmax(pred[0])) if pred.ndim == 2 and pred.shape[1] > 1 else 0
+
+            if arr.ndim == 3:
+                cls_idx = int(min(max(cls_idx, 0), arr.shape[2] - 1))
+                impact = arr[0, :, cls_idx]
+            elif arr.ndim == 2:
+                impact = arr[0]
+            else:
+                impact = np.ravel(arr)
+
+            m = min(len(impact), len(feature_names), one_t.shape[1])
+            exp_df = aggregate_feature_impacts(
+                feature_names[:m],
+                np.asarray(impact[:m], dtype=float),
+                top_n=top_n,
+                base_features=base_features,
+            )
+            return exp_df, "shap"
+        except Exception:
+            pass
+
+    try:
+        delta = np.ravel(one_t[0] - np.mean(bg_t, axis=0))
+        weights = None
+
+        if hasattr(model_obj, "get_weights"):
+            ws = model_obj.get_weights()
+            if ws:
+                first = np.asarray(ws[0], dtype=float)
+                if first.ndim == 2:
+                    weights = np.mean(np.abs(first), axis=1)
+
+        if weights is not None:
+            m = min(len(delta), len(weights), len(feature_names), one_t.shape[1])
+            impact = delta[:m] * weights[:m]
+        else:
+            m = min(len(delta), len(feature_names), one_t.shape[1])
+            impact = delta[:m]
+
+        exp_df = aggregate_feature_impacts(
+            feature_names[:m],
+            np.asarray(impact, dtype=float),
+            top_n=top_n,
+            base_features=base_features,
+        )
+        return exp_df, "fallback"
+    except Exception:
+        return None, "none"
+
+
+def genomic_feature_columns(df: pd.DataFrame) -> list[str]:
+    genomic_cols = [c for c in df.columns if c.startswith("genomic_")]
+    context_cols = [c for c in ["country", "year", "temperature_celsius", "precip_mm", "humidity"] if c in df.columns]
+    cols = genomic_cols + context_cols
+    if not cols:
+        cols = [
+            c
+            for c in df.columns
+            if c
+            not in [
+                "production",
+                "Production_Category",
+                "disease_risk_target",
+                "disease_risk_score",
+            ]
+        ]
+    return cols
+
+
+def build_profile_frame(profile: dict[str, Any], reference_df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
+    row: dict[str, Any] = {}
+    for col in cols:
+        if col in profile:
+            row[col] = profile[col]
+        elif col in reference_df.columns:
+            if pd.api.types.is_numeric_dtype(reference_df[col]):
+                row[col] = float(reference_df[col].median())
+            else:
+                mode_vals = reference_df[col].dropna().astype(str).mode()
+                row[col] = mode_vals.iloc[0] if len(mode_vals) else "Unknown"
+        else:
+            row[col] = 0.0
+    return pd.DataFrame([row], columns=cols)
+
+
+def direct_impact_dataframe(feature_names: list[str], impacts: np.ndarray, top_n: int = 10) -> pd.DataFrame:
+    df = pd.DataFrame({"feature": [str(x) for x in feature_names], "impact": np.asarray(impacts, dtype=float)})
+    df["impact_abs"] = df["impact"].abs()
+    df = df.sort_values("impact_abs", ascending=False).head(top_n).reset_index(drop=True)
+    df["feature"] = df["feature"].str.replace("_", " ", regex=False)
+    return df
+
+
+def explain_genomic_track(
+    model_obj,
+    reference_df: pd.DataFrame,
+    input_df: pd.DataFrame,
+    top_n: int = 10,
+) -> tuple[pd.DataFrame | None, str]:
+    if model_obj is None or reference_df is None or input_df is None or reference_df.empty or input_df.empty:
+        return None, "none"
+
+    try:
+        ref_num = to_numeric_features(reference_df.copy(), reference_df)
+        one_num = to_numeric_features(input_df.copy(), reference_df)
+
+        # Keep genomic explainability strictly aligned to the trained model schema.
+        model_features = list(getattr(model_obj, "feature_names_in_", []))
+        if model_features:
+            for col in model_features:
+                if col not in ref_num.columns:
+                    ref_num[col] = 0.0
+                if col not in one_num.columns:
+                    one_num[col] = 0.0
+            ref_num = ref_num[model_features]
+            one_num = one_num[model_features]
+    except Exception:
+        return None, "none"
+
+    def resolve_class_index() -> int:
+        cls_idx = 0
+        try:
+            pred_label = model_obj.predict(one_num)[0]
+            classes = list(getattr(model_obj, "classes_", []))
+            if pred_label in classes:
+                cls_idx = classes.index(pred_label)
+            elif hasattr(model_obj, "predict_proba"):
+                cls_idx = int(np.argmax(model_obj.predict_proba(one_num)[0]))
+        except Exception:
+            cls_idx = 0
+        return int(max(cls_idx, 0))
+
+    if HAS_SHAP:
+        try:
+            # Prefer Tree SHAP for HistGB and related tree classifiers.
+            tree_exp = shap.TreeExplainer(model_obj)
+            values = tree_exp.shap_values(one_num)
+
+            if isinstance(values, list):
+                cls_idx = resolve_class_index()
+                cls_idx = int(min(max(cls_idx, 0), len(values) - 1))
+                impact = np.ravel(np.asarray(values[cls_idx], dtype=float))[0 : one_num.shape[1]]
+            else:
+                arr = np.asarray(values, dtype=float)
+                if arr.ndim == 3:
+                    cls_idx = resolve_class_index()
+                    cls_idx = int(min(max(cls_idx, 0), arr.shape[2] - 1))
+                    impact = arr[0, :, cls_idx]
+                elif arr.ndim == 2:
+                    impact = arr[0]
+                else:
+                    impact = np.ravel(arr)[0 : one_num.shape[1]]
+
+            m = min(len(impact), one_num.shape[1])
+            return (
+                direct_impact_dataframe(list(one_num.columns[:m]), np.asarray(impact[:m], dtype=float), top_n=top_n),
+                "shap",
+            )
+        except Exception:
+            try:
+                bg = ref_num.sample(n=min(120, len(ref_num)), random_state=42)
+                predict_fn = model_obj.predict_proba if hasattr(model_obj, "predict_proba") else model_obj.predict
+                explainer = shap.Explainer(predict_fn, bg)
+                values = explainer(one_num)
+                arr = np.asarray(values.values, dtype=float)
+
+                if arr.ndim == 3:
+                    cls_idx = resolve_class_index()
+                    cls_idx = int(min(max(cls_idx, 0), arr.shape[2] - 1))
+                    impact = arr[0, :, cls_idx]
+                elif arr.ndim == 2:
+                    impact = arr[0]
+                else:
+                    impact = np.ravel(arr)[0 : one_num.shape[1]]
+
+                m = min(len(impact), one_num.shape[1])
+                return (
+                    direct_impact_dataframe(
+                        list(one_num.columns[:m]),
+                        np.asarray(impact[:m], dtype=float),
+                        top_n=top_n,
+                    ),
+                    "shap",
+                )
+            except Exception:
+                pass
+
+    try:
+        delta = np.ravel(one_num.iloc[0].to_numpy(dtype=float) - ref_num.mean(axis=0).to_numpy(dtype=float))
+        if hasattr(model_obj, "feature_importances_"):
+            w = np.asarray(model_obj.feature_importances_, dtype=float)
+            m = min(len(delta), len(w), one_num.shape[1])
+            impact = delta[:m] * w[:m]
+        elif hasattr(model_obj, "coef_"):
+            coef = np.asarray(model_obj.coef_, dtype=float)
+            w = np.mean(np.abs(coef), axis=0) if coef.ndim == 2 else np.abs(np.ravel(coef))
+            m = min(len(delta), len(w), one_num.shape[1])
+            impact = delta[:m] * w[:m]
+        else:
+            m = min(len(delta), one_num.shape[1])
+            impact = delta[:m]
+
+        return direct_impact_dataframe(list(one_num.columns[:m]), np.asarray(impact, dtype=float), top_n=top_n), "fallback"
+    except Exception:
+        return None, "none"
+
+
+def render_explainability_results(exp_df: pd.DataFrame | None, mode: str, unavailable_msg: str) -> None:
+    if exp_df is None or len(exp_df) == 0:
+        st.warning(unavailable_msg)
+        return
+
+    if mode == "shap":
+        st.success("SHAP values are active for this model.")
+    elif mode == "global":
+        st.info("Local signal is very small for current inputs. Showing global feature influence.")
+    else:
+        st.warning("SHAP path unavailable for this model path. Showing model-based fallback influence.")
+
+    chart_df = exp_df[["feature", "impact_abs"]].set_index("feature")
+    st.bar_chart(chart_df)
+
+    show_df = exp_df[["feature", "impact", "impact_abs"]].copy()
+    show_df["impact"] = show_df["impact"].map(lambda x: f"{float(x):+.6f}")
+    show_df["impact_abs"] = show_df["impact_abs"].map(lambda x: f"{float(x):.6f}")
+    st.dataframe(show_df, width="stretch", hide_index=True)
+
+    top = exp_df.iloc[0]
+    if mode == "global":
+        st.info(f"Most influential parameter (global): {top['feature']} (importance={float(top['impact_abs']):.6f}).")
+    else:
+        direction = "increased" if float(top["impact"]) > 0 else "reduced"
+        st.info(
+            f"Most influential parameter: {top['feature']} ({direction} the current output; |impact|={float(top['impact_abs']):.6f})."
+        )
+
+
+def render_architecture_diagram(input_text: str, processing_text: str, model_text: str, output_text: str) -> None:
+    st.markdown(
+        f"""
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0.3rem 0 0.8rem 0;">
+  <div style="padding:0.5rem 0.7rem;border:1px solid #c8d9ea;border-radius:10px;background:#f9fcff;min-width:180px;"><b>Input</b><br>{input_text}</div>
+  <div style="font-size:1.2rem;color:#4b6b88;">→</div>
+  <div style="padding:0.5rem 0.7rem;border:1px solid #c8d9ea;border-radius:10px;background:#f9fcff;min-width:180px;"><b>Processing</b><br>{processing_text}</div>
+  <div style="font-size:1.2rem;color:#4b6b88;">→</div>
+  <div style="padding:0.5rem 0.7rem;border:1px solid #c8d9ea;border-radius:10px;background:#f9fcff;min-width:180px;"><b>Model</b><br>{model_text}</div>
+  <div style="font-size:1.2rem;color:#4b6b88;">→</div>
+  <div style="padding:0.5rem 0.7rem;border:1px solid #c8d9ea;border-radius:10px;background:#f9fcff;min-width:180px;"><b>Output</b><br>{output_text}</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
 def build_forecast(df: pd.DataFrame, horizon: int) -> tuple[pd.DataFrame, pd.DataFrame] | tuple[None, None]:
     if "year" not in df.columns or "production" not in df.columns:
         return None, None
@@ -564,7 +970,22 @@ def policy_recommendations(prod_label: str | None, sus_label: str | None, profil
 
 
 def load_results_graphs() -> list[Path]:
-    return sorted([p for p in RESULTS_DIR.glob("*.png") if p.is_file()])
+    if not RESULTS_DIR.exists():
+        return []
+    return sorted([p for p in RESULTS_DIR.rglob("*") if p.is_file() and p.suffix.lower() in RESULT_IMAGE_EXTS])
+
+
+def count_total_result_graphs() -> int:
+    if not RESULTS_DIR.exists():
+        return 0
+    return sum(1 for p in RESULTS_DIR.rglob("*") if p.is_file() and p.suffix.lower() in RESULT_IMAGE_EXTS)
+
+
+def load_result_artifacts() -> list[Path]:
+    if not RESULTS_DIR.exists():
+        return []
+    exts = {".csv", ".md", ".txt"}
+    return sorted([p for p in RESULTS_DIR.rglob("*") if p.is_file() and p.suffix.lower() in exts])
 
 
 def group_result_graphs(graphs: list[Path]) -> dict[str, list[Path]]:
@@ -632,6 +1053,8 @@ feature_selector_model = load_pickle(FEATURE_SELECTOR_PATH)
 
 data_df = load_data()
 results_graphs = load_results_graphs()
+total_result_graphs = count_total_result_graphs()
+result_artifacts = load_result_artifacts()
 xai_evidence_md = load_markdown_file(XAI_EVIDENCE_REPORT_PATH)
 
 st.sidebar.header("System Status")
@@ -662,6 +1085,8 @@ tabs = st.tabs([
     "Overview",
     "Predictions",
     "Explainability",
+    "Results Gallery",
+    "Architecture",
     "Forecasting",
     "Scenario Simulation",
     "Policy Recommendations",
@@ -764,13 +1189,14 @@ with tabs[1]:
 
     prod_input = build_aligned_input(profile, productivity_model, data_df)
     prod_input_selected = apply_feature_selector(prod_input, feature_selector_model, data_df)
+    genomic_input = build_aligned_input(profile, feature_selector_model, data_df)
 
     sust_target = sustainability_bundle.get("model") if isinstance(sustainability_bundle, dict) else sustainability_bundle
     sust_input = build_aligned_input(profile, sust_target, data_df, bundle=sustainability_bundle if isinstance(sustainability_bundle, dict) else None)
 
     prod_label, prod_conf = predict_productivity(productivity_model, prod_input_selected)
     sus_label, sus_conf = predict_sustainability(sustainability_bundle, sust_input)
-    genomic_signal = predict_genomic_signal(feature_selector_model, prod_input, data_df)
+    genomic_signal = predict_genomic_signal(feature_selector_model, genomic_input, data_df)
 
     prod_score = productivity_score_from_outputs(prod_label, prod_conf, sensitivity_shift=live_shift)
     sus_score = sustainability_score_from_outputs(sus_label, sus_conf, sensitivity_shift=live_shift)
@@ -815,54 +1241,86 @@ with tabs[1]:
 
 with tabs[2]:
     st.subheader("Explainability")
-    st.caption("Feature impacts for the current profile are shown below.")
+    st.caption("Simple model-level SHAP view: one tab per best model, plus graph coverage status.")
     st.divider()
-    active_profile = st.session_state.get("latest_profile", dict(base_profile))
-    one_input = build_aligned_input(active_profile, productivity_model, data_df)
-    ref_input = build_aligned_input(base_profile, productivity_model, data_df)
 
     st.markdown("### SHAP Analysis")
-    exp_df = explain_with_shap(productivity_model, ref_input, one_input)
-    used_shap = exp_df is not None
-    if exp_df is None:
-        exp_df = explain_with_fallback(productivity_model, ref_input, one_input)
+    active_profile = st.session_state.get("latest_profile", dict(base_profile))
+    top_n = 10
 
-    if exp_df is not None and len(exp_df) > 0 and float(exp_df["impact_abs"].max()) <= 1e-5:
-        exp_df = global_feature_importance(productivity_model, top_n=10)
-        if exp_df is not None:
-            st.info("Local change is very small for current inputs. Showing global feature importance for clarity.")
+    prod_input = build_aligned_input(active_profile, productivity_model, data_df)
+    prod_ref = build_aligned_reference_frame(productivity_model, data_df)
+    prod_exp, prod_mode = explain_pipeline_track(productivity_model, prod_ref, prod_input, top_n=top_n)
 
-    if exp_df is not None and len(exp_df) > 0:
-        if used_shap:
-            st.success("SHAP values are active for this prediction.")
-        else:
-            st.warning("SHAP not available for this model path. Showing model-based fallback importance.")
+    sust_target = sustainability_bundle.get("model") if isinstance(sustainability_bundle, dict) else sustainability_bundle
+    sust_input = build_aligned_input(
+        active_profile,
+        sust_target,
+        data_df,
+        bundle=sustainability_bundle if isinstance(sustainability_bundle, dict) else None,
+    )
+    sust_ref = build_aligned_reference_frame(
+        sust_target,
+        data_df,
+        bundle=sustainability_bundle if isinstance(sustainability_bundle, dict) else None,
+    )
+    sust_exp, sust_mode = explain_sustainability_track(sustainability_bundle, sust_ref, sust_input, top_n=top_n)
 
-        chart_df = exp_df[["feature", "impact_abs"]].set_index("feature")
-        st.bar_chart(chart_df)
+    gen_ref = build_aligned_reference_frame(feature_selector_model, data_df)
+    gen_input = build_aligned_input(active_profile, feature_selector_model, data_df)
+    gen_exp, gen_mode = explain_genomic_track(feature_selector_model, gen_ref, gen_input, top_n=top_n)
 
-        show_df = exp_df[["feature", "impact", "impact_abs"]].copy()
-        show_df["impact"] = show_df["impact"].map(lambda x: f"{float(x):+.6f}")
-        show_df["impact_abs"] = show_df["impact_abs"].map(lambda x: f"{float(x):.6f}")
-        st.dataframe(show_df, use_container_width=True, hide_index=True)
+    prod_name = friendly_model_name(productivity_model)
+    sust_name = friendly_model_name(sust_target)
+    gen_name = friendly_model_name(feature_selector_model)
 
-        top = exp_df.iloc[0]
-        direction = "increased" if float(top["impact"]) > 0 else "reduced"
-        st.info(f"{top['feature']} most strongly {direction} the current productivity output.")
+    track_tabs = st.tabs([
+        f"Productivity ({prod_name})",
+        f"Sustainability ({sust_name})",
+        f"Genomic ({gen_name})",
+    ])
 
-        top3 = exp_df.head(3)
-        lines = []
-        for _, row in top3.iterrows():
-            action = "increased" if float(row["impact"]) > 0 else "reduced"
-            lines.append(f"- {row['feature']} {action} the productivity output")
-        st.markdown("\n".join(lines))
-    else:
-        st.warning("Explainability information is unavailable for the current model format.")
+    with track_tabs[0]:
+        render_explainability_results(
+            prod_exp,
+            prod_mode,
+            "Productivity explainability is unavailable for the current model format.",
+        )
+
+    with track_tabs[1]:
+        render_explainability_results(
+            sust_exp,
+            sust_mode,
+            "Sustainability explainability is unavailable for the current model format.",
+        )
+
+    with track_tabs[2]:
+        render_explainability_results(
+            gen_exp,
+            gen_mode,
+            "Genomic explainability is unavailable for the current model format.",
+        )
 
     if results_graphs:
         st.divider()
         st.markdown("### Model Visual Evidence")
-        st.caption("Neatly organized plots for explainability, train/test behavior, and model-comparison insights.")
+        st.caption("Coverage and grouped model charts from the latest notebook runs.")
+
+        loaded_count = len(results_graphs)
+        coverage_line = f"Loaded {loaded_count}/{total_result_graphs} graphs from results/."
+        if loaded_count == total_result_graphs:
+            st.caption(coverage_line)
+        else:
+            st.warning(coverage_line + " Some result graphs are not currently loaded into the UI.")
+
+        spiral_graphs = [p for p in results_graphs if "spiral" in p.name.lower()]
+        if spiral_graphs:
+            st.markdown("#### Spiral Metrics (Complete Set)")
+            st.caption(f"Showing all spiral charts ({len(spiral_graphs)}).")
+            spiral_cols = st.columns(2)
+            for i, pth in enumerate(spiral_graphs):
+                with spiral_cols[i % 2]:
+                    st.image(str(pth), caption=pth.name, use_container_width=True)
 
         grouped = group_result_graphs(results_graphs)
         section_names = list(grouped.keys())
@@ -875,17 +1333,167 @@ with tabs[2]:
                 for i, pth in enumerate(images):
                     with cols[i % 2]:
                         st.image(str(pth), caption=pth.name, use_container_width=True)
-
-    st.divider()
-    st.markdown("### Explainability Evidence")
-    st.caption("Concise interpretability evidence summary for model behavior and prediction rationale.")
-    if xai_evidence_md:
-        with st.expander("Open explainability evidence summary", expanded=False):
-            st.markdown(xai_evidence_md)
     else:
-        st.info("Explainability evidence file is missing. Add results/xai_evidence_report.md to show it here.")
+        st.divider()
+        st.markdown("### Model Visual Evidence")
+        st.caption(f"Loaded 0/{total_result_graphs} graphs from results/.")
+        st.warning("No result image files were found in results/. Add image outputs to display visual evidence.")
 
 with tabs[3]:
+    st.subheader("Results Gallery")
+    st.caption("Complete archive view from results/: every image and every CSV/MD/TXT artifact.")
+    st.divider()
+
+    g1, g2 = st.columns(2)
+    g1.metric("Result images", f"{len(results_graphs)}")
+    g2.metric("Result tables/docs", f"{len(result_artifacts)}")
+
+    st.markdown("### All Result Images")
+    if results_graphs:
+        st.caption(f"Showing all {len(results_graphs)} image files found in results/.")
+        image_cols = st.columns(2)
+        for i, pth in enumerate(results_graphs):
+            with image_cols[i % 2]:
+                st.image(str(pth), caption=pth.name, use_container_width=True)
+    else:
+        st.warning("No result image files were found in results/.")
+
+    st.divider()
+    st.markdown("### All Result Tables and Documents")
+    if result_artifacts:
+        for path in result_artifacts:
+            with st.expander(path.name, expanded=False):
+                suffix = path.suffix.lower()
+                if suffix == ".csv":
+                    df_art = safe_read_csv(path)
+                    if df_art is not None:
+                        st.caption(f"Rows: {len(df_art)} | Columns: {len(df_art.columns)}")
+                        st.dataframe(df_art, width="stretch", hide_index=True)
+                    else:
+                        raw_csv = load_text_file(path)
+                        if raw_csv:
+                            st.code(raw_csv, language="text")
+                        else:
+                            st.warning("Could not load this CSV artifact.")
+                elif suffix == ".md":
+                    md_text = load_markdown_file(path)
+                    if md_text:
+                        st.markdown(md_text)
+                    else:
+                        st.warning("Could not load this markdown artifact.")
+                else:
+                    text_blob = load_text_file(path)
+                    if text_blob:
+                        st.code(text_blob, language="text")
+                    else:
+                        st.warning("Could not load this text artifact.")
+    else:
+        st.warning("No CSV/MD/TXT result artifacts were found in results/.")
+
+with tabs[4]:
+    st.subheader("Architecture")
+    st.caption("Best-model architecture view with clear input → processing → model → output diagrams.")
+
+    arch_tabs = st.tabs([
+        f"Productivity - {prod_name}",
+        f"Sustainability - {sust_name}",
+        f"Genomic - {gen_name}",
+    ])
+
+    with arch_tabs[0]:
+        render_architecture_diagram(
+            "Climate + water + genomic + context features",
+            "ColumnTransformer (scale + one-hot encode)",
+            f"{prod_name}",
+            "Productivity class + confidence",
+        )
+        if prod_name == "XGBoost":
+            st.markdown(
+                """
+**Input**: climate + water + genomic + context features from processed dataset.
+
+**Processing**: `ColumnTransformer` with `StandardScaler` (numeric) and `OneHotEncoder` (categorical).
+
+**Model**: `XGBClassifier` (multiclass, tree boosting).
+
+**Output**: productivity class (`Low/Medium/High`) with confidence from `predict_proba`.
+
+**Limitation**: captures strong predictive patterns but cannot establish exact causal drivers.
+"""
+            )
+        else:
+            st.markdown(
+                f"""
+**Input**: climate + water + genomic + context features from processed dataset.
+
+**Processing**: feature alignment + preprocessing pipeline fitted in the notebook workflow.
+
+**Model**: `{prod_name}`.
+
+**Output**: productivity class (`Low/Medium/High`) with confidence when probabilities are available.
+
+**Limitation**: predictive structure may shift under new environments and does not prove direct causality.
+"""
+            )
+
+    with arch_tabs[1]:
+        render_architecture_diagram(
+            "Selected sustainability features",
+            "Preprocessor transform + label encoding",
+            f"{sust_name}",
+            "Sustainability class + confidence",
+        )
+        if sust_name == "MLP":
+            st.markdown(
+                """
+**Input**: selected climate, water, and genomic aggregate features.
+
+**Processing**: preprocessing transform + label encoding for multiclass target.
+
+**Model**: Keras `Sequential` MLP with dense hidden layers and softmax output.
+
+**Output**: sustainability class (`Low/Medium/High`) and confidence distribution.
+
+**Limitation**: target remains proxy-based and explanations reflect model behavior, not exact ecological mechanism.
+"""
+            )
+        else:
+            st.markdown(
+                f"""
+**Input**: selected climate, water, and genomic aggregate features.
+
+**Processing**: preprocessing transform + label encoding for multiclass target.
+
+**Model**: `{sust_name}`.
+
+**Output**: sustainability class (`Low/Medium/High`) and confidence distribution.
+
+**Limitation**: target is proxy-based and may shift under unseen environmental regimes.
+"""
+            )
+
+    with arch_tabs[2]:
+        render_architecture_diagram(
+            "Genomic-prefixed + context features",
+            "Categorical factorization + numeric matrix",
+            f"{gen_name}",
+            "Genomic class signal",
+        )
+        st.markdown(
+            """
+**Input**: genomic-prefixed features + core context fields.
+
+**Processing**: categorical factorization, numeric conversion, missing-value handling.
+
+**Model**: `HistGradientBoostingClassifier` for multiclass genomic signal prediction.
+
+**Output**: genomic class signal (`Low/Medium/High`) used in integrated decision support.
+
+**Limitation**: predictive signal is useful, but the model cannot infer exact biological mechanism.
+"""
+        )
+
+with tabs[5]:
     st.subheader("Forecasting")
     st.caption("Compare historical production with projected trend for the selected horizon.")
     st.divider()
@@ -909,7 +1517,7 @@ with tabs[3]:
         f2.metric("Latest production", f"{latest:.2f}")
         f3.metric("Projected end value", f"{future:.2f}", delta=f"{delta:+.2f}")
 
-with tabs[4]:
+with tabs[6]:
     st.subheader("Scenario Simulation")
     st.caption("Apply scenario adjustments and compare baseline vs changed outcomes.")
     st.divider()
@@ -993,7 +1601,7 @@ with tabs[4]:
     d2.metric("Sustainability confidence delta", f"{sus_delta:+.6f}")
     d3.metric("Scenario shift index", f"{scenario_shift:.1f}")
 
-with tabs[5]:
+with tabs[7]:
     st.subheader("Policy Recommendations")
     st.caption("Actionable recommendations generated from current prediction outcomes.")
     st.divider()

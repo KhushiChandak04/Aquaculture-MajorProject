@@ -1,16 +1,6 @@
-feature,importance_mean,importance_std,method
-country,0.647512224414515,0.003921477426402109,prediction_sensitivity
-year,0.2727631466071888,0.003048387502496859,prediction_sensitivity
-genomic_GC_Content_global_mean,0.0,0.0,prediction_sensitivity
-genomic_Num_A_global_mean,0.0,0.0,prediction_sensitivity
-genomic_Num_T_global_mean,0.0,0.0,prediction_sensitivity
-genomic_AT_Content_global_mean,0.0,0.0,prediction_sensitivity
-genomic_Sequence_Length_global_mean,0.0,0.0,prediction_sensitivity
-genomic_Num_G_global_mean,0.0,0.0,prediction_sensitivity
-genomic_Num_C_global_mean,0.0,0.0,prediction_sensitivity
-genomic_Mutation_Flag_global_mean,0.0,0.0,prediction_sensitivity
-genomic_kmer_3_freq_global_mean,0.0,0.0,prediction_sensitivity
-genomic_Disease_Risk_global_mode,0.0,0.0,prediction_sensitivity
-temperature_celsius,0.0,0.0,prediction_sensitivity
-precip_mm,0.0,0.0,prediction_sensitivity
-humidity,0.0,0.0,prediction_sensitivity
+feature,importance_mean,importance_std
+country,0.5961964448919685,0.0074962164603467685
+year,0.21865736886306236,0.00618086166720658
+water_Salinity (ppt),0.00010820074006506197,0.0018874917870720389
+water_SecchiDepth (m),-0.0008643094689292974,0.0005818905976389163
+water_WaterTemp (C),-0.0009077286125864725,0.0009973307283446431

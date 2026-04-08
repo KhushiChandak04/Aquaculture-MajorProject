@@ -1,10 +1,10 @@
 Sustainability Classification Results
 ====================================
 Best model: MLP
-Accuracy: 0.9485
-Precision (macro): 0.9486
-Recall (macro): 0.9485
-F1 (macro): 0.9483
+Accuracy: 0.9481
+Precision (macro): 0.9481
+Recall (macro): 0.9481
+F1 (macro): 0.9479
 
 All model metrics saved in sustainability_metrics.csv
 Charts saved:
