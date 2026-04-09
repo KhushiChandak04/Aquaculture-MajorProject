@@ -33,6 +33,11 @@ RESULTS_DIR = BASE_DIR / "results"
 DATA_FILE = BASE_DIR / "data" / "processed" / "final_dataset.csv"
 XAI_EVIDENCE_REPORT_PATH = RESULTS_DIR / "xai_evidence_report.md"
 RESULT_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
+PRIMARY_SPIRAL_FILES = {
+    "productivity_spiral_all_models.png",
+    "sustainability_spiral_net_metrics.png",
+    "genomic_spiral_all_models.png",
+}
 
 PRODUCTIVITY_MODEL_PATH = MODELS_DIR / "productivity_model.pkl"
 SUSTAINABILITY_MODEL_PATH = MODELS_DIR / "sustainability_model.pkl"
@@ -975,6 +980,15 @@ def load_results_graphs() -> list[Path]:
     return sorted([p for p in RESULTS_DIR.rglob("*") if p.is_file() and p.suffix.lower() in RESULT_IMAGE_EXTS])
 
 
+def filter_primary_spiral_graphs(graphs: list[Path]) -> list[Path]:
+    filtered: list[Path] = []
+    for p in graphs:
+        name = p.name.lower()
+        if "spiral" not in name or name in PRIMARY_SPIRAL_FILES:
+            filtered.append(p)
+    return filtered
+
+
 def count_total_result_graphs() -> int:
     if not RESULTS_DIR.exists():
         return 0
@@ -1003,7 +1017,9 @@ def group_result_graphs(graphs: list[Path]) -> dict[str, list[Path]]:
         if "spiral" in name:
             groups["Spiral Net Metrics"].append(p)
         elif "train_vs_test" in name or "train_val" in name or "train_trial" in name:
-            groups["Train vs Test Curves"].append(p)
+            if name == "all_tracks_train_vs_test_accuracy.png":
+                groups["Train vs Test Curves"].append(p)
+            continue
         elif name.startswith("khushi_") or "productivity" in name:
             groups["Productivity Visuals"].append(p)
         elif name.startswith("sustainability"):
@@ -1052,8 +1068,8 @@ sustainability_bundle = load_pickle(SUSTAINABILITY_MODEL_PATH)
 feature_selector_model = load_pickle(FEATURE_SELECTOR_PATH)
 
 data_df = load_data()
-results_graphs = load_results_graphs()
-total_result_graphs = count_total_result_graphs()
+results_graphs = filter_primary_spiral_graphs(load_results_graphs())
+total_result_graphs = len(results_graphs)
 result_artifacts = load_result_artifacts()
 xai_evidence_md = load_markdown_file(XAI_EVIDENCE_REPORT_PATH)
 
@@ -1383,106 +1399,132 @@ with tabs[3]:
 
 with tabs[4]:
     st.subheader("Architecture")
-    st.caption("Best-model architecture view with clear input → processing → model → output diagrams.")
+    st.caption("Best-model architecture view with model-specific pipeline/layer details and core learning formulas.")
 
     arch_tabs = st.tabs([
-        f"Productivity - {prod_name}",
-        f"Sustainability - {sust_name}",
-        f"Genomic - {gen_name}",
+        f"Productivity - Best ML ({prod_name})",
+        "Sustainability - Best DL (MLP)",
+        f"Genomic - Best ML ({gen_name})",
     ])
 
     with arch_tabs[0]:
         render_architecture_diagram(
-            "Climate + water + genomic + context features",
-            "ColumnTransformer (scale + one-hot encode)",
-            f"{prod_name}",
+            "Climate + water + genomic + context features (mixed numeric + categorical)",
+            "ColumnTransformer: StandardScaler(num) + OneHotEncoder(cat)",
+            f"{prod_name} (best productivity classifier)",
             "Productivity class + confidence",
         )
+        st.markdown("### Best Productivity Architecture")
+        common_rows = [
+            {
+                "Stage": "Input",
+                "Definition": "Climate, water quality, genomic, and context features from processed dataset",
+            },
+            {
+                "Stage": "Preprocessing",
+                "Definition": "ColumnTransformer with StandardScaler for numeric columns and OneHotEncoder(handle_unknown='ignore') for categorical columns",
+            },
+        ]
+
         if prod_name == "XGBoost":
-            st.markdown(
-                """
-**Input**: climate + water + genomic + context features from processed dataset.
-
-**Processing**: `ColumnTransformer` with `StandardScaler` (numeric) and `OneHotEncoder` (categorical).
-
-**Model**: `XGBClassifier` (multiclass, tree boosting).
-
-**Output**: productivity class (`Low/Medium/High`) with confidence from `predict_proba`.
-
-**Limitation**: captures strong predictive patterns but cannot establish exact causal drivers.
-"""
-            )
+            model_row = {
+                "Stage": "Model",
+                "Definition": "XGBClassifier: boosted trees with additive stage-wise updates",
+            }
+            st.dataframe(pd.DataFrame(common_rows + [model_row, {"Stage": "Output", "Definition": "Soft class probabilities and final class label (Low/Medium/High)"}]), width="stretch", hide_index=True)
+            st.markdown("#### Core Learning Formulation")
+            st.latex(r"F^{(t)}(x)=F^{(t-1)}(x)+\eta f_t(x)")
+            st.latex(r"\hat{p}_c(x)=\frac{\exp(F_c(x))}{\sum_{j=1}^{C}\exp(F_j(x))}")
+            st.latex(r"\mathcal{L}=\sum_{i=1}^{N}\ell(y_i,\hat{p}(x_i))+\Omega(f)")
+            st.info("XGBoost captures non-linear feature interactions using additive gradient-boosted decision trees.")
+        elif prod_name in {"ExtraTrees", "RandomForest", "DecisionTree"}:
+            model_row = {
+                "Stage": "Model",
+                "Definition": f"{prod_name}: tree-based split learning over transformed feature space",
+            }
+            st.dataframe(pd.DataFrame(common_rows + [model_row, {"Stage": "Output", "Definition": "Majority-vote class label and class confidence"}]), width="stretch", hide_index=True)
+            st.markdown("#### Core Learning Formulation")
+            st.latex(r"\hat{y}=\operatorname*{argmax}_{c}\sum_{t=1}^{T}\mathbb{1}[h_t(x)=c]")
+            st.latex(r"Gini(S)=1-\sum_{c=1}^{C}p_c^2")
+            st.info("Tree ensembles improve generalization by aggregating multiple partition-based learners.")
         else:
-            st.markdown(
-                f"""
-**Input**: climate + water + genomic + context features from processed dataset.
-
-**Processing**: feature alignment + preprocessing pipeline fitted in the notebook workflow.
-
-**Model**: `{prod_name}`.
-
-**Output**: productivity class (`Low/Medium/High`) with confidence when probabilities are available.
-
-**Limitation**: predictive structure may shift under new environments and does not prove direct causality.
-"""
-            )
+            model_row = {
+                "Stage": "Model",
+                "Definition": f"{prod_name}: linear multiclass decision boundary on transformed features",
+            }
+            st.dataframe(pd.DataFrame(common_rows + [model_row, {"Stage": "Output", "Definition": "Class probabilities and predicted class"}]), width="stretch", hide_index=True)
+            st.markdown("#### Core Learning Formulation")
+            st.latex(r"\hat{p}_c(x)=\frac{\exp(w_c^\top x+b_c)}{\sum_{j=1}^{C}\exp(w_j^\top x+b_j)}")
+            st.latex(r"\mathcal{L}_{CE}=-\sum_{i=1}^{N}\sum_{c=1}^{C}y_{ic}\log(\hat{p}_{ic})")
+            st.info("Multiclass logistic modeling provides a calibrated linear baseline over transformed inputs.")
 
     with arch_tabs[1]:
         render_architecture_diagram(
-            "Selected sustainability features",
-            "Preprocessor transform + label encoding",
-            f"{sust_name}",
+            "Preprocessed sustainability feature vector",
+            "Dense64(ReLU) -> Dropout(0.2) -> Dense32(ReLU)",
+            "Sequential MLP -> Dense3(Softmax)",
             "Sustainability class + confidence",
         )
-        if sust_name == "MLP":
-            st.markdown(
-                """
-**Input**: selected climate, water, and genomic aggregate features.
-
-**Processing**: preprocessing transform + label encoding for multiclass target.
-
-**Model**: Keras `Sequential` MLP with dense hidden layers and softmax output.
-
-**Output**: sustainability class (`Low/Medium/High`) and confidence distribution.
-
-**Limitation**: target remains proxy-based and explanations reflect model behavior, not exact ecological mechanism.
-"""
-            )
-        else:
-            st.markdown(
-                f"""
-**Input**: selected climate, water, and genomic aggregate features.
-
-**Processing**: preprocessing transform + label encoding for multiclass target.
-
-**Model**: `{sust_name}`.
-
-**Output**: sustainability class (`Low/Medium/High`) and confidence distribution.
-
-**Limitation**: target is proxy-based and may shift under unseen environmental regimes.
-"""
-            )
+        st.markdown("### Best Sustainability Architecture")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {"Layer Name": "input_features", "Type": "Input", "Shape": "(d,)", "Activation": "-", "Purpose": "Preprocessed numeric feature vector"},
+                    {"Layer Name": "dense_64", "Type": "Dense", "Shape": "64 units", "Activation": "ReLU", "Purpose": "First hidden representation"},
+                    {"Layer Name": "dropout_20", "Type": "Dropout", "Shape": "rate=0.2", "Activation": "-", "Purpose": "Regularization against overfitting"},
+                    {"Layer Name": "dense_32", "Type": "Dense", "Shape": "32 units", "Activation": "ReLU", "Purpose": "Second hidden representation"},
+                    {"Layer Name": "output_softmax", "Type": "Dense", "Shape": "3 units", "Activation": "Softmax", "Purpose": "Class probabilities (Low/Medium/High)"},
+                ]
+            ),
+            width="stretch",
+            hide_index=True,
+        )
+        st.markdown("#### Forward Pass and Loss")
+        st.latex(r"h_1=\mathrm{ReLU}(W_1x+b_1)")
+        st.latex(r"\tilde{h}_1=\mathrm{Dropout}(h_1, p=0.2)")
+        st.latex(r"h_2=\mathrm{ReLU}(W_2\tilde{h}_1+b_2)")
+        st.latex(r"\hat{p}=\mathrm{softmax}(W_3h_2+b_3)")
+        st.latex(r"\mathcal{L}_{CE}=-\sum_{i=1}^{N}\sum_{c=1}^{C}y_{ic}\log(\hat{p}_{ic})")
+        st.info("This tab reflects the best benchmark deep-learning model (MLP) with explicit hidden-layer naming and multiclass softmax objective.")
 
     with arch_tabs[2]:
         render_architecture_diagram(
             "Genomic-prefixed + context features",
-            "Categorical factorization + numeric matrix",
-            f"{gen_name}",
+            "Categorical factorization -> numeric matrix -> histogram binning",
+            "HistGradientBoostingClassifier (additive boosted trees)",
             "Genomic class signal",
         )
-        st.markdown(
-            """
-**Input**: genomic-prefixed features + core context fields.
-
-**Processing**: categorical factorization, numeric conversion, missing-value handling.
-
-**Model**: `HistGradientBoostingClassifier` for multiclass genomic signal prediction.
-
-**Output**: genomic class signal (`Low/Medium/High`) used in integrated decision support.
-
-**Limitation**: predictive signal is useful, but the model cannot infer exact biological mechanism.
-"""
+        st.markdown("### Best Genomic Architecture")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Stage": "Input",
+                        "Definition": "Genomic-prefixed features plus contextual factors (country, year, climate)",
+                    },
+                    {
+                        "Stage": "Preprocessing",
+                        "Definition": "Object columns factorized to integer codes, numeric coercion, NaN fill",
+                    },
+                    {
+                        "Stage": "Model",
+                        "Definition": "HistGradientBoostingClassifier using histogram-binned splits and stage-wise boosting",
+                    },
+                    {
+                        "Stage": "Output",
+                        "Definition": "Multiclass genomic signal used in integrated decision logic",
+                    },
+                ]
+            ),
+            width="stretch",
+            hide_index=True,
         )
+        st.markdown("#### Core Learning Formulation")
+        st.latex(r"F_m(x)=F_{m-1}(x)+\eta h_m(x)")
+        st.latex(r"h_m\approx\arg\min_{h\in\mathcal{H}}\sum_{i=1}^{N}\left[g_{im}h(x_i)+\frac{1}{2}h_{im}h(x_i)^2\right]")
+        st.latex(r"\hat{p}_c(x)=\frac{\exp(F_{M,c}(x))}{\sum_{j=1}^{C}\exp(F_{M,j}(x))}")
+        st.latex(r"\mathcal{L}_{log}=-\sum_{i=1}^{N}\sum_{c=1}^{C}y_{ic}\log(\hat{p}_{ic})")
+        st.info("Histogram-based boosting scales well on genomic feature spaces while modeling non-linear interactions across predictors.")
 
 with tabs[5]:
     st.subheader("Forecasting")

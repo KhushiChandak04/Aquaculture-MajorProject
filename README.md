@@ -164,7 +164,22 @@ python run_all.py
 
 ### Launch Application
 ```bash
+powershell -ExecutionPolicy Bypass -File scripts/start_streamlit.ps1
+```
+
+Fallback direct launch:
+```bash
 python -m streamlit run streamlit_app/app.py
+```
+
+### Streamlit Dynamic Module Error Recovery
+If you see errors such as "Failed to fetch dynamically imported module" for paths under /static/js/index.<hash>.js:
+1. Run the startup script above (it clears stale port owners on 8501 by default).
+2. In the browser, perform a hard refresh (Ctrl+F5).
+3. If needed, start on a different port:
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/start_streamlit.ps1 -Port 8502
 ```
 
 ## <img src="https://img.shields.io/badge/Section-Quality_Assurance-003049?style=flat-square&logo=checkmarx&logoColor=white" alt="Quality Assurance" />

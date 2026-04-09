@@ -102,7 +102,7 @@ def first_existing(row: pd.Series | None, candidates: list[str]):
 
 
 def build_summary_text() -> str:
-    productivity = read_csv(RESULTS_DIR / "khushi_short_summary.csv")
+    productivity = read_csv(RESULTS_DIR / "productivity_metrics.csv")
     sustainability = read_csv(RESULTS_DIR / "sustainability_metrics.csv")
     genomic_metrics = read_csv(RESULTS_DIR / "janhavi_model_metrics.csv")
     genomic_importance = read_csv(RESULTS_DIR / "genomic_feature_importance.csv")
@@ -110,10 +110,7 @@ def build_summary_text() -> str:
     sustainability_txt = read_sustainability_txt_metrics(RESULTS_DIR / "sustainability_results_summary.txt")
 
     if productivity is not None and "model" in productivity.columns:
-        # User requested to remove ExtraTrees from displayed productivity outputs.
-        productivity = productivity[productivity["model"].astype(str) != "ExtraTrees"].copy()
-
-        # Keep one best row per model name to avoid duplicated branch entries.
+        # Keep one best row per model name to avoid duplicated entries.
         if "f1_macro" in productivity.columns:
             productivity = productivity.sort_values("f1_macro", ascending=False).drop_duplicates(subset=["model"], keep="first")
         else:
@@ -146,7 +143,7 @@ def build_summary_text() -> str:
 
     lines.append("## Best Productivity Model Snapshot")
     if best_prod is None:
-        lines.append("- khushi_short_summary.csv not found or unreadable")
+        lines.append("- productivity_metrics.csv not found or unreadable")
     else:
         for k, v in to_pairs(best_prod):
             lines.append(f"- {k}: {v}")
@@ -154,7 +151,7 @@ def build_summary_text() -> str:
     lines.append("")
     lines.append("## All Productivity Models")
     if productivity is None or len(productivity) == 0:
-        lines.append("- khushi_short_summary.csv not found or unreadable")
+        lines.append("- productivity_metrics.csv not found or unreadable")
     else:
         show_prod = sort_for_display(productivity)
         for col in show_prod.columns:

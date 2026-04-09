@@ -25,17 +25,17 @@ Generated: 2026-04-09
 
 ## 2. Best Model Snapshots
 
-### 2.1 Productivity Track (Best: XGBoost)
+### 2.1 Productivity Track (Best: ExtraTrees)
 | Metric | Value |
 |---|---|
-| Accuracy | 0.8945 |
-| Precision (macro) | 0.9154 |
-| Recall (macro) | 0.8387 |
-| F1 (macro) | 0.8626 |
-| Training Time (s) | 0.5509 |
-| Inference per 1000 rows (ms) | 4.5841 |
-| Model Size (MB) | 0.9775 |
-| Peak Train RAM (MB) | 5.7574 |
+| Accuracy | 0.9601 |
+| Precision (macro) | 0.9607 |
+| Recall (macro) | 0.9601 |
+| F1 (macro) | 0.9603 |
+| Training Time (s) | 1.2033 |
+| Inference per 1000 rows (ms) | 33.1825 |
+| Model Size (MB) | 103.8424 |
+| Peak Train RAM (MB) | 138.7383 |
 
 ### 2.2 Sustainability Track (Best: MLP)
 | Metric | Value |
@@ -60,11 +60,11 @@ Generated: 2026-04-09
 ### 3.1 Productivity Models
 | model | accuracy | precision_macro | recall_macro | f1_macro | train_seconds | infer_ms_per_1000 | model_size_mb | peak_train_ram_mb |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| XGBoost | 0.8945 | 0.9154 | 0.8387 | 0.8626 | 0.5509 | 4.5841 | 0.9775 | 5.7574 |
-| DecisionTree | 0.8752 | 0.8976 | 0.8192 | 0.8446 | 0.0523 | 1.6822 | 0.0145 | 5.7580 |
-| ExtraTrees | 0.8611 | 0.8953 | 0.8022 | 0.8323 | 0.8781 | 17.7100 | 3.1018 | 8.1099 |
-| RandomForest | 0.8606 | 0.8477 | 0.8164 | 0.8290 | 1.5735 | 15.3593 | 0.6335 | 9.7556 |
-| LogisticRegression | 0.7363 | 0.7149 | 0.7291 | 0.7183 | 0.2165 | 1.7130 | 0.0142 | 5.8080 |
+| ExtraTrees | 0.9601 | 0.9607 | 0.9601 | 0.9603 | 1.2033 | 33.1825 | 103.8424 | 138.7383 |
+| RandomForest | 0.9515 | 0.9530 | 0.9516 | 0.9518 | 0.8808 | 28.1769 | 65.2930 | 79.0117 |
+| LogisticRegression | 0.9057 | 0.9059 | 0.9056 | 0.9057 | 0.1685 | 2.5575 | 0.0141 | 0.9609 |
+| XGBoost | 0.7920 | 0.8145 | 0.7919 | 0.7960 | 0.6988 | 4.6646 | 0.7373 | 95.9141 |
+| DecisionTree | 0.4082 | 0.2773 | 0.4077 | 0.3264 | 0.0365 | 2.2559 | 0.0111 | 1.1016 |
 
 ### 3.2 Sustainability Models
 | model | accuracy | precision | recall | f1 |
