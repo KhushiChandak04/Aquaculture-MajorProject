@@ -29,6 +29,9 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_PATH = BASE_DIR / "data" / "processed" / "final_dataset.csv"
 MODEL_PATH = BASE_DIR / "models" / "productivity_model.pkl"
 METRICS_PATH = BASE_DIR / "results" / "productivity_metrics.csv"
+DEPLOYMENT_ENSEMBLE_CANDIDATES = {"XGBoost", "ExtraTrees", "RandomForest"}
+MIN_DEPLOY_ACCURACY = 0.75
+MIN_DEPLOY_F1 = 0.75
 
 
 def make_dataset(df: pd.DataFrame):
@@ -126,6 +129,28 @@ def pick_best_latency_aware(metrics_df: pd.DataFrame) -> pd.Series:
     ).iloc[0]
 
 
+def pick_deployment_model(metrics_df: pd.DataFrame) -> pd.Series:
+    if metrics_df.empty:
+        raise ValueError("No metrics available to select best model")
+
+    required_cols = {"model", "accuracy", "f1_macro", "infer_ms_per_1000"}
+    if required_cols.issubset(set(metrics_df.columns)):
+        candidates = metrics_df[metrics_df["model"].astype(str).isin(DEPLOYMENT_ENSEMBLE_CANDIDATES)].copy()
+        if len(candidates) > 0:
+            deployable = candidates[
+                (pd.to_numeric(candidates["accuracy"], errors="coerce") >= MIN_DEPLOY_ACCURACY)
+                & (pd.to_numeric(candidates["f1_macro"], errors="coerce") >= MIN_DEPLOY_F1)
+            ].copy()
+
+            if len(deployable) > 0:
+                return deployable.sort_values(
+                    ["infer_ms_per_1000", "recall_macro", "f1_macro", "accuracy", "model_size_mb", "train_seconds"],
+                    ascending=[True, False, False, False, True, True],
+                ).iloc[0]
+
+    return pick_best_latency_aware(metrics_df)
+
+
 def main() -> None:
     if not DATA_PATH.exists():
         raise FileNotFoundError(f"Missing dataset file: {DATA_PATH}")
@@ -174,7 +199,7 @@ def main() -> None:
         raise RuntimeError("No productivity model could be trained")
 
     metrics_df = pd.DataFrame(rows)
-    best_row = pick_best_latency_aware(metrics_df)
+    best_row = pick_deployment_model(metrics_df)
     best_model_name = str(best_row["model"])
     best_pipe = trained[best_model_name]
 
@@ -185,7 +210,10 @@ def main() -> None:
 
     print(f"Saved productivity model -> {MODEL_PATH}")
     print(f"Saved productivity metrics -> {METRICS_PATH}")
-    print(f"Selected best model (quality-first, latency-aware): {best_model_name}")
+    print(
+        "Selected productivity model (latency-aware deployable ensemble competition): "
+        f"{best_model_name}"
+    )
 
 
 if __name__ == "__main__":
