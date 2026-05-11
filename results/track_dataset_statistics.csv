@@ -1,0 +1,10 @@
+Track,Class,Training_Count,Training_Percentage,Validation_Count,Validation_Percentage,Total_Count,Total_Percentage
+Productivity,Low,3119,33.45,780,33.45,3899,33.45
+Productivity,Medium,3097,33.21,775,33.23,3872,33.22
+Productivity,High,3109,33.34,777,33.32,3886,33.34
+Sustainability,Low,3119,33.45,780,33.45,3899,33.45
+Sustainability,Medium,3097,33.21,775,33.23,3872,33.22
+Sustainability,High,3109,33.34,777,33.32,3886,33.34
+Genomic,Low,3119,33.45,780,33.45,3899,33.45
+Genomic,Medium,3097,33.21,775,33.23,3872,33.22
+Genomic,High,3109,33.34,777,33.32,3886,33.34

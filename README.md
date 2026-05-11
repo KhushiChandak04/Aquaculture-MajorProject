@@ -195,10 +195,15 @@ python scripts/quality_gate.py
 
 ## <img src="https://img.shields.io/badge/Section-Research_Outputs-7B2CBF?style=flat-square&logo=googledocs&logoColor=white" alt="Research Outputs" />
 Primary generated outputs include:
-1. results/final_project_results_summary.md
-2. results/validation_audit.md
-3. results/novelty_evidence.md
-4. Track-level metrics, plots, and explainability artifacts in results/
+1. results/final_project_results_summary.md — Consolidated evidence report for all tracks
+2. results/validation_audit.md — Validation and leakage audit
+3. results/novelty_evidence.md — Research novelty evidence
+4. results/full_dataset_summary.md — Comprehensive column-wise statistics
+5. results/track_dataset_summaries.md — Productivity, Sustainability, Genomic dataset splits and distributions
+6. results/track_dataset_statistics.csv — Class distribution statistics across tracks
+7. results/model_comparison_visualization.png — Top 3 models performance comparison (bar charts)
+8. results/model_comparison_summary.md — Detailed model comparison and recommendations
+9. Track-level metrics, plots, and explainability artifacts in results/
 
 ## <img src="https://img.shields.io/badge/Section-Project_Intent-14213D?style=flat-square&logo=academia&logoColor=white" alt="Project Intent" />
 This project is developed as a formally structured research-engineering system, not a demo-only dashboard. Its design priority is evidence-backed, reproducible, and interpretable model deployment for aquaculture decision intelligence under multi-signal uncertainty.

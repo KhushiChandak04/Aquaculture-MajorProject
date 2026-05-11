@@ -1,0 +1,4 @@
+Model,Accuracy,Precision,Recall,F1-Score,Training Time (s)
+XGBoost,0.9684,0.9648,0.9639,0.9662,1.5402
+MLP Classifier,0.9721,0.9694,0.9688,0.9702,
+HistGradientBoosting,0.9612,0.9585,0.9598,0.9597,2.5815
