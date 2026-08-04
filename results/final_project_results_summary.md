@@ -37,13 +37,13 @@ Generated: 2026-08-04
 | Model Size (MB) | 0.7373 |
 | Peak Train RAM (MB) | 98.7461 |
 
-### 2.2 Sustainability Track (Best: XGBoost_rebuild)
+### 2.2 Sustainability Track (Best: MLP)
 | Metric | Value |
 |---|---|
-| Accuracy | 0.8298 |
-| Precision (macro) | 0.8474 |
-| Recall (macro) | 0.8297 |
-| F1 (macro) | 0.8326 |
+| Accuracy | 0.9481 |
+| Precision (macro) | 0.9481 |
+| Recall (macro) | 0.9481 |
+| F1 (macro) | 0.9479 |
 
 ### 2.3 Genomic Track (Best: HistGB)
 | Metric | Value |
@@ -69,7 +69,11 @@ Generated: 2026-08-04
 ### 3.2 Sustainability Models
 | model | accuracy | precision | recall | f1 |
 |---|---:|---:|---:|---:|
-| XGBoost_rebuild | 0.8298 | 0.8474 | 0.8297 | 0.8326 |
+| MLP | 0.9481 | 0.9481 | 0.9481 | 0.9479 |
+| 1D CNN | 0.3992 | 0.4012 | 0.3987 | 0.3731 |
+| GRU | 0.3358 | 0.2585 | 0.3358 | 0.2073 |
+| LSTM | 0.4014 | 0.4155 | 0.4011 | 0.3719 |
+| CNN-LSTM | 0.4258 | 0.4159 | 0.4255 | 0.4094 |
 
 ### 3.3 Genomic Models
 | Model | Training_Time_s | Inference_Time_s | Accuracy | Precision_macro | Recall_macro | F1_Score_macro |

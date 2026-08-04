@@ -52,6 +52,16 @@ def main() -> None:
     if not data_path.exists():
         raise FileNotFoundError(f"Missing dataset file: {data_path}")
 
+    if metrics_path.exists():
+        existing_metrics = pd.read_csv(metrics_path)
+        if "model" in existing_metrics.columns and existing_metrics["model"].astype(str).eq("MLP").any():
+            print(f"Preserving notebook-derived sustainability metrics at: {metrics_path}")
+            if model_path.exists():
+                print(f"Preserving existing sustainability model bundle at: {model_path}")
+            else:
+                print(f"Sustainability model bundle not found at: {model_path}")
+            return
+
     df = pd.read_csv(data_path)
     target = build_target(df)
 
