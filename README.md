@@ -60,6 +60,15 @@ Aquaculture systems are affected by coupled biological and environmental variabl
 | Sustainability | Multi-class sustainability level classification | models/sustainability_model.pkl | Class label and confidence distribution |
 | Genomic | Genomic-informed class signal | models/feature_selector.pkl | Genomic class signal and feature influence |
 
+## <img src="https://img.shields.io/badge/Section-Current_Derived_Results-7B2CBF?style=flat-square&logo=chartdotjs&logoColor=white" alt="Current Derived Results" />
+These values are regenerated from the checked-in benchmark CSVs and the notebook-derived sustainability results.
+
+| Track | Best Result Used in Reports | Accuracy | F1 | Notes |
+|---|---|---:|---:|---|
+| Productivity | XGBoost | 0.7920 | 0.7960 | Deployment-best model used in the consolidated summary |
+| Sustainability | MLP | 0.9481 | 0.9479 | Real notebook benchmark preserved in `results/sustainability_metrics.csv` |
+| Genomic | HistGB | 0.9468 | 0.9470 | Best genomic benchmark in the 8-model comparison |
+
 ## <img src="https://img.shields.io/badge/Section-Dashboard_Modules-22577A?style=flat-square&logo=streamlit&logoColor=white" alt="Dashboard Modules" />
 ### Predictions
 Interactive profile-based synchronized inference across all model tracks.
@@ -195,7 +204,7 @@ python scripts/quality_gate.py
 
 ## <img src="https://img.shields.io/badge/Section-Research_Outputs-7B2CBF?style=flat-square&logo=googledocs&logoColor=white" alt="Research Outputs" />
 Primary generated outputs include:
-1. results/final_project_results_summary.md — Consolidated evidence report for all tracks
+1. results/final_project_results_summary.md — Consolidated evidence report for all tracks, regenerated from the real benchmark CSVs
 2. results/validation_audit.md — Validation and leakage audit
 3. results/novelty_evidence.md — Research novelty evidence
 4. results/full_dataset_summary.md — Comprehensive column-wise statistics
