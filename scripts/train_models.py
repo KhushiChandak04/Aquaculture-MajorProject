@@ -10,6 +10,7 @@ try:
 
     from scripts.build_sustainability_model import main as build_sustainability_model
     from scripts.generate_final_results_summary import main as generate_summary
+    from scripts.generate_paper_results import main as generate_paper_results
     from scripts.generate_visual_reports import main as generate_visual_reports
     from scripts.recompute_genomic_importance import main as recompute_genomic_importance
     from scripts.train_genomic_model import main as train_genomic_model
@@ -20,6 +21,7 @@ except ImportError:
 
     from build_sustainability_model import main as build_sustainability_model
     from generate_final_results_summary import main as generate_summary
+    from generate_paper_results import main as generate_paper_results
     from generate_visual_reports import main as generate_visual_reports
     from recompute_genomic_importance import main as recompute_genomic_importance
     from train_genomic_model import main as train_genomic_model
@@ -51,7 +53,10 @@ def main() -> None:
     print("[7/8] Generating visual reports...")
     generate_visual_reports()
 
-    print("[8/8] Regenerating final summary...")
+    print("[8/9] Generating paper-ready tables and PSG fusion metrics...")
+    generate_paper_results()
+
+    print("[9/9] Regenerating final summary...")
     generate_summary()
 
     print("Training pipeline completed.")

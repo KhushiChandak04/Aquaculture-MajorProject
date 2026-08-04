@@ -42,6 +42,9 @@ def main() -> int:
         RESULTS_DIR / "productivity_metrics.csv",
         RESULTS_DIR / "sustainability_metrics.csv",
         RESULTS_DIR / "genomic_feature_importance.csv",
+        RESULTS_DIR / "paper_results_tables.md",
+        RESULTS_DIR / "psg_combined_metrics.csv",
+        RESULTS_DIR / "psg_combined_probabilities.csv",
         RESULTS_DIR / "final_project_results_summary.md",
         RESULTS_DIR / "novelty_evidence.md",
     ]
@@ -52,6 +55,7 @@ def main() -> int:
     check_csv_columns(RESULTS_DIR / "productivity_metrics.csv", ["model", "accuracy", "f1_macro"], failures)
     check_csv_columns(RESULTS_DIR / "sustainability_metrics.csv", ["accuracy", "f1"], failures)
     check_csv_columns(RESULTS_DIR / "genomic_feature_importance.csv", ["feature", "importance_mean", "importance_std"], failures)
+    check_csv_columns(RESULTS_DIR / "psg_combined_metrics.csv", ["model", "accuracy", "precision_macro", "recall_macro", "f1_macro"], failures)
 
     if missing or failures:
         print("QUALITY GATE: FAILED")
