@@ -257,22 +257,12 @@ def compute_sustainability_train_test() -> tuple[float, float] | None:
 
     xtr, xte, ytr, yte = train_test_split(X, y_enc, test_size=0.2, random_state=42, stratify=y_enc)
 
-    xtr_eval = xtr
-    xte_eval = xte
-    if preprocessor is not None:
-        xtr_eval = preprocessor.transform(xtr)
-        xte_eval = preprocessor.transform(xte)
-        if hasattr(xtr_eval, "toarray"):
-            xtr_eval = xtr_eval.toarray()
-        if hasattr(xte_eval, "toarray"):
-            xte_eval = xte_eval.toarray()
-
     try:
-        tr_pred = model.predict(xtr_eval, verbose=0)
-        te_pred = model.predict(xte_eval, verbose=0)
+        tr_pred = model.predict(xtr, verbose=0)
+        te_pred = model.predict(xte, verbose=0)
     except TypeError:
-        tr_pred = model.predict(xtr_eval)
-        te_pred = model.predict(xte_eval)
+        tr_pred = model.predict(xtr)
+        te_pred = model.predict(xte)
 
     tr_pred = np.asarray(tr_pred)
     te_pred = np.asarray(te_pred)

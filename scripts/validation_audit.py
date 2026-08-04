@@ -33,8 +33,22 @@ def split_features(df: pd.DataFrame):
 
 
 def build_pipeline(X: pd.DataFrame):
-    cat_cols = [c for c in X.columns if X[c].dtype == "object"]
-    num_cols = [c for c in X.columns if c not in cat_cols]
+    numeric_cols = [c for c in X.columns if pd.api.types.is_numeric_dtype(X[c])]
+    cat_cols = [c for c in X.columns if c not in numeric_cols]
+
+    safe_numeric_cols = []
+    moved_to_cat = []
+    for c in numeric_cols:
+        coerced = pd.to_numeric(X[c], errors="coerce")
+        if X[c].notna().any() and coerced.isna().any():
+            moved_to_cat.append(c)
+            cat_cols.append(c)
+        else:
+            safe_numeric_cols.append(c)
+
+    num_cols = safe_numeric_cols
+    if moved_to_cat:
+        print(f"Moved non-numeric columns to categorical encoder: {moved_to_cat}")
 
     prep = ColumnTransformer(
         transformers=[
