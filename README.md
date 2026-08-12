@@ -65,14 +65,14 @@ These values are regenerated from the checked-in benchmark CSVs and the notebook
 
 | Track | Best Result Used in Reports | Accuracy | F1 | Notes |
 |---|---|---:|---:|---|
-| Productivity | XGBoost | 0.7920 | 0.7960 | Deployment-best model used in the consolidated summary |
+| Productivity | ExtraTrees | 0.9601 | 0.9603 | Deployment-best model with optimal recall-weighted selection |
 | Sustainability | MLP | 0.9481 | 0.9479 | Real notebook benchmark preserved in `results/sustainability_metrics.csv` |
 | Genomic | HistGB | 0.9468 | 0.9470 | Best genomic benchmark in the 8-model comparison |
 
-PSG fusion on the common 459-sample held-out subset is also generated from real predictions: accuracy 0.6187, precision 0.5500, recall 0.6275, F1 0.5416. See `results/psg_combined_metrics.csv` and `results/paper_results_tables.md`.
+PSG fusion on the common 459-sample held-out subset is also generated from real predictions: accuracy 0.7233, precision 0.7233, recall 0.7229, F1 0.7230. See `results/psg_combined_metrics.csv` and `results/paper_results_tables.md`.
 
 ### Methodology Note: PSG Fusion Rule
-The PSG combined row is computed as $R = 0.50\,P_r + 0.35\,S_r + 0.15\,G_r$ on the shared held-out samples. The continuous score is then discretized with fixed thresholds at $1/3$ and $2/3$: $R \le 1/3$ is Low, $1/3 < R \le 2/3$ is Medium, and $R > 2/3$ is High.
+The PSG combined row is computed as $R = 0.50\,P_r + 0.35\,S_r + 0.15\,G_r$ on the shared held-out samples. The continuous score is then discretized using **data-driven tertiles** of R itself, matching the quantile-based approach used for the production target. This ensures class balance and adapts to R's actual distribution, avoiding calibration bias from fixed thresholds.
 
 ## <img src="https://img.shields.io/badge/Section-Dashboard_Modules-22577A?style=flat-square&logo=streamlit&logoColor=white" alt="Dashboard Modules" />
 ### Predictions

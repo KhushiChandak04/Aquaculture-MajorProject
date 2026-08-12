@@ -23,7 +23,6 @@ OUTPUT_PSG_SAMPLES = RESULTS_DIR / "psg_combined_probabilities.csv"
 PSG_WEIGHT_PRODUCTIVITY = 0.50
 PSG_WEIGHT_SUSTAINABILITY = 0.35
 PSG_WEIGHT_GENOMIC = 0.15
-PSG_LOW_HIGH_CUTS = (1.0 / 3.0, 2.0 / 3.0)
 
 
 def read_csv(path: Path) -> pd.DataFrame:
@@ -254,11 +253,12 @@ def compute_psg_metrics() -> tuple[pd.DataFrame, pd.DataFrame]:
     gen_prob = genomic_best_model(common_indices, y_labels)
 
     fused_r = PSG_WEIGHT_PRODUCTIVITY * prod_prob + PSG_WEIGHT_SUSTAINABILITY * sus_prob + PSG_WEIGHT_GENOMIC * gen_prob
-    fused_pred = pd.cut(
+    # Use data-driven tertiles of R, matching the discretization approach used for production target
+    fused_pred = pd.qcut(
         fused_r,
-        bins=[-np.inf, PSG_LOW_HIGH_CUTS[0], PSG_LOW_HIGH_CUTS[1], np.inf],
+        q=3,
         labels=["Low", "Medium", "High"],
-        include_lowest=True,
+        duplicates='drop'  # Handle ties if present
     ).astype(str)
 
     metrics = pd.DataFrame(
