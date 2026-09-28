@@ -8,7 +8,7 @@
 	<img src="https://img.shields.io/badge/Explainability-SHAP_Integrated-0C7BDC" alt="Explainability" />
 </p>
 
-Generated: 2026-08-04
+Generated: 2026-09-28
 
 ## 1. Artifact Readiness Matrix
 | Artifact | Path | Status |
@@ -21,7 +21,6 @@ Generated: 2026-08-04
 | Genomic metrics | results/janhavi_model_metrics.csv | Available |
 | Genomic feature importance | results/genomic_feature_importance.csv | Available |
 | Validation audit | results/validation_audit.md | Available |
-| Novelty evidence | results/novelty_evidence.md | Available |
 
 ## 2. Best Model Snapshots
 
@@ -107,5 +106,4 @@ Generated: 2026-08-04
 1. This summary is a consolidated operational-research view and should be read alongside:
 	 - results/validation_audit.md
 	 - results/xai_evidence_report.md
-	 - results/novelty_evidence.md
 2. Model outputs are predictive evidence and should be interpreted with domain and ecological validation.

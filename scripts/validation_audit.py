@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import datetime
+import json
 
 import numpy as np
 import pandas as pd
@@ -14,22 +15,29 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_PATH = BASE_DIR / "data" / "processed" / "final_dataset.csv"
 OUT_PATH = BASE_DIR / "results" / "validation_audit.md"
+TEMPORAL_OUT_PATH = BASE_DIR / "results" / "temporal_walk_forward.csv"
+LEAKAGE_OUT_PATH = BASE_DIR / "results" / "leakage_audit.json"
+WALK_FORWARD_START_YEAR = 2011
 
 
 def split_features(df: pd.DataFrame):
-    drop_cols = [
-        "Production_Category",
-        "disease_risk_target",
-        "disease_risk_score",
-    ]
-    keep_cols = [c for c in df.columns if c not in drop_cols]
-    X = df[keep_cols].copy()
+    X = feature_frame(df)
 
     if "production" not in df.columns:
         raise ValueError("Column 'production' required for audit target generation")
 
     y = pd.qcut(df["production"], q=3, labels=["Low", "Medium", "High"]).astype(str)
     return X, y
+
+
+def feature_frame(df: pd.DataFrame) -> pd.DataFrame:
+    drop_cols = [
+        "Production_Category",
+        "disease_risk_target",
+        "disease_risk_score",
+    ]
+    keep_cols = [c for c in df.columns if c not in drop_cols]
+    return df[keep_cols].copy()
 
 
 def build_pipeline(X: pd.DataFrame):
@@ -76,6 +84,57 @@ def classification_report_values(y_true, y_pred):
     }
 
 
+def temporal_target(train_df: pd.DataFrame, eval_df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
+    """Create production classes using thresholds learned from the training fold only."""
+    train_production = pd.to_numeric(train_df["production"], errors="coerce")
+    eval_production = pd.to_numeric(eval_df["production"], errors="coerce")
+    q1, q2 = train_production.quantile([1 / 3, 2 / 3]).tolist()
+    bins = [-np.inf, q1, q2, np.inf]
+    labels = ["Low", "Medium", "High"]
+    train_y = pd.cut(train_production, bins=bins, labels=labels, include_lowest=True).astype(str)
+    eval_y = pd.cut(eval_production, bins=bins, labels=labels, include_lowest=True).astype(str)
+    return train_y, eval_y
+
+
+def run_walk_forward(df: pd.DataFrame) -> pd.DataFrame:
+    """Evaluate each year using only records from earlier years."""
+    if "year" not in df.columns or "production" not in df.columns:
+        return pd.DataFrame()
+
+    rows = []
+    years = sorted(pd.to_numeric(df["year"], errors="coerce").dropna().astype(int).unique())
+    for year in years:
+        if year < WALK_FORWARD_START_YEAR:
+            continue
+        train_df = df[df["year"] < year].copy()
+        test_df = df[df["year"] == year].copy()
+        if train_df.empty or test_df.empty or train_df["production"].nunique() < 3:
+            continue
+
+        y_train, y_test = temporal_target(train_df, test_df)
+        if y_train.nunique() < 3:
+            continue
+
+        x_train = feature_frame(train_df)
+        x_test = feature_frame(test_df)
+        pipe = build_pipeline(x_train)
+        pipe.fit(x_train, y_train)
+        pred = pipe.predict(x_test)
+        scores = classification_report_values(y_test, pred)
+        rows.append(
+            {
+                "test_year": year,
+                "train_start_year": int(train_df["year"].min()),
+                "train_end_year": int(train_df["year"].max()),
+                "train_samples": len(train_df),
+                "test_samples": len(test_df),
+                **scores,
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
 def main() -> None:
     if not DATA_PATH.exists():
         raise FileNotFoundError(f"Missing dataset file: {DATA_PATH}")
@@ -83,6 +142,20 @@ def main() -> None:
     df = pd.read_csv(DATA_PATH)
 
     dup_ratio = float(df.duplicated().mean())
+    duplicate_country_year = 0
+    if {"country", "year"}.issubset(df.columns):
+        duplicate_country_year = int(df.duplicated(subset=["country", "year"]).sum())
+    constant_columns = [c for c in df.columns if df[c].nunique(dropna=False) == 1]
+    leakage_audit = {
+        "official_dataset_path": str(DATA_PATH.relative_to(BASE_DIR)),
+        "full_dataset_rows": int(len(df)),
+        "duplicate_row_count": int(df.duplicated().sum()),
+        "duplicate_country_year_count": duplicate_country_year,
+        "constant_columns": constant_columns,
+        "train_only_transform_policy": "Pipeline preprocessing is fitted after each train split.",
+        "target_threshold_policy": "Walk-forward thresholds are fitted from each historical training fold.",
+        "synthetic_data_created": False,
+    }
 
     X, y = split_features(df)
     x_train, x_test, y_train, y_test = train_test_split(
@@ -135,8 +208,39 @@ def main() -> None:
         lines.append("### Temporal Split")
         lines.append("- Not available because 'year' column is missing.")
 
+    walk_forward = run_walk_forward(df)
+    if not walk_forward.empty:
+        walk_forward.to_csv(TEMPORAL_OUT_PATH, index=False)
+        lines.extend(
+            [
+                "",
+                "## Walk-Forward Validation",
+                "- Each test year is evaluated using only earlier years for training.",
+                "- Scaling and categorical encoding are fitted within each training fold.",
+                "- Production class thresholds are derived from the training fold and applied to that test year.",
+                f"- Evaluated years: {int(walk_forward['test_year'].min())}-{int(walk_forward['test_year'].max())}.",
+                f"- Mean walk-forward accuracy: {walk_forward['accuracy'].mean():.4f}.",
+                f"- Mean walk-forward F1 macro: {walk_forward['f1_macro'].mean():.4f}.",
+                f"- Detailed results: `{TEMPORAL_OUT_PATH.relative_to(BASE_DIR)}`.",
+            ]
+        )
+    else:
+        lines.extend(["", "## Walk-Forward Validation", "- Not available for the current dataset."])
+
+    lines.extend(
+        [
+            "",
+            "## Data Integrity Findings",
+            f"- Duplicate country-year rows: {duplicate_country_year}.",
+            f"- Constant final-dataset columns: {', '.join(constant_columns) if constant_columns else 'None'}.",
+            "- No synthetic records are created by this audit.",
+            "- Water geography and genomic sample assignments are not reconstructed without official source keys.",
+        ]
+    )
+
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    LEAKAGE_OUT_PATH.write_text(json.dumps(leakage_audit, indent=2), encoding="utf-8")
     print(f"Saved validation audit to: {OUT_PATH}")
 
 

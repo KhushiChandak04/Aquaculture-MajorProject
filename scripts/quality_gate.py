@@ -46,7 +46,9 @@ def main() -> int:
         RESULTS_DIR / "psg_combined_metrics.csv",
         RESULTS_DIR / "psg_combined_probabilities.csv",
         RESULTS_DIR / "final_project_results_summary.md",
-        RESULTS_DIR / "novelty_evidence.md",
+        BASE_DIR / "docs" / "dataset_methodology" / "PROFESSOR_SUMMARY.md",
+        RESULTS_DIR / "temporal_walk_forward.csv",
+        RESULTS_DIR / "leakage_audit.json",
     ]
 
     for p in required_files:

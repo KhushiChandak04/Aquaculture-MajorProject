@@ -4,6 +4,7 @@ from preprocessing.run_all import run_all as run_preprocessing
 
 from scripts.build_sustainability_model import main as build_sustainability_model
 from scripts.generate_final_results_summary import main as generate_summary
+from scripts.generate_dataset_docs import main as generate_dataset_docs
 from scripts.generate_paper_results import main as generate_paper_results
 from scripts.generate_visual_reports import main as generate_visual_reports
 from scripts.quality_gate import main as run_quality_gate
@@ -45,7 +46,10 @@ def main() -> None:
     print("[9/10] Regenerating consolidated project summary...")
     generate_summary()
 
-    print("[10/10] Running quality gate checks...")
+    print("[10/11] Generating dataset methodology audit...")
+    generate_dataset_docs()
+
+    print("[11/11] Running quality gate checks...")
     gate_code = run_quality_gate()
     if gate_code != 0:
         raise SystemExit(gate_code)

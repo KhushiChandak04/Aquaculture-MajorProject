@@ -156,7 +156,6 @@ def build_summary_text() -> str:
         ["Genomic metrics", "results/janhavi_model_metrics.csv", status_label(RESULTS_DIR / "janhavi_model_metrics.csv")],
         ["Genomic feature importance", "results/genomic_feature_importance.csv", status_label(RESULTS_DIR / "genomic_feature_importance.csv")],
         ["Validation audit", "results/validation_audit.md", status_label(RESULTS_DIR / "validation_audit.md")],
-        ["Novelty evidence", "results/novelty_evidence.md", status_label(RESULTS_DIR / "novelty_evidence.md")],
     ]
     lines.extend(markdown_table(["Artifact", "Path", "Status"], artifact_rows))
     lines.append("")
@@ -280,7 +279,6 @@ def build_summary_text() -> str:
     lines.append("1. This summary is a consolidated operational-research view and should be read alongside:")
     lines.append("\t - results/validation_audit.md")
     lines.append("\t - results/xai_evidence_report.md")
-    lines.append("\t - results/novelty_evidence.md")
     lines.append("2. Model outputs are predictive evidence and should be interpreted with domain and ecological validation.")
 
     return "\n".join(lines) + "\n"

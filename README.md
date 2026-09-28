@@ -27,6 +27,20 @@ The system supports three synchronized tracks:
 2. Sustainability-level classification under environmental context.
 3. Genomic-aware class signaling and feature sensitivity analysis.
 
+## Dataset Methodology
+
+The dataset join strategy and current quality findings are documented in the single professor-facing summary:
+
+- [PROFESSOR_SUMMARY.md](docs/dataset_methodology/PROFESSOR_SUMMARY.md)
+
+The current snapshot preserves the production base through left merges, joins water by year, and represents genomic data with global aggregates. Climate coverage currently does not overlap the historical production years, so these limitations must be considered when interpreting model results.
+
+Regenerate the measured summary with:
+
+```powershell
+venv\Scripts\python.exe scripts/generate_dataset_docs.py
+```
+
 ## <img src="https://img.shields.io/badge/Section-Research_Context-1D3557?style=flat-square&logo=googlescholar&logoColor=white" alt="Research Context" />
 Aquaculture systems are affected by coupled biological and environmental variables. Traditional single-task pipelines often fail to bridge model outputs with decision use. This project addresses that gap by combining:
 1. Multi-track model development over a shared processed dataset.
@@ -104,9 +118,13 @@ Running python run_all.py executes scripts/full_rebuild.py with the following pi
 4. Sustainability model bundle build.
 5. Genomic importance recomputation.
 6. Validation and leakage audit generation.
-7. Visual report generation.
-8. Consolidated final summary regeneration.
-9. Quality gate validation.
+7. Temporal walk-forward validation for 2011-2018.
+8. Visual report generation.
+9. Paper-ready tables and PSG fusion metrics.
+10. Consolidated final summary and professor summary regeneration.
+11. Quality gate validation.
+
+The temporal audit writes `results/temporal_walk_forward.csv` and `results/leakage_audit.json`. These outputs use only the official processed dataset; no geographic water values or genomic strain assignments are synthesized.
 
 ## <img src="https://img.shields.io/badge/Section-Repository_Structure-6C757D?style=flat-square&logo=files&logoColor=white" alt="Repository Structure" />
 ```text
