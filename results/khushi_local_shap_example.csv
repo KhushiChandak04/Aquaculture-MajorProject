@@ -1,263 +1,251 @@
 feature,contribution,abs_contribution
-num__production,1.1833718,1.1833718
-num__year,-0.8441777,0.8441777
-cat__country_Netherlands,0.55496013,0.55496013
-cat__country_New Zealand,0.49886224,0.49886224
-cat__country_Faeroe Islands,0.45075732,0.45075732
-cat__country_South Korea,0.42069188,0.42069188
-num__water_pH,-0.39211896,0.39211896
-cat__country_Ireland,0.32860747,0.32860747
-cat__country_Germany,0.328225,0.328225
-cat__country_Bulgaria,0.27691865,0.27691865
-cat__country_Spain,0.23717856,0.23717856
-cat__country_Seychelles,0.23606959,0.23606959
-cat__country_Afghanistan,-0.2178539,0.2178539
-cat__country_Fiji,0.21391535,0.21391535
-cat__country_Sweden,0.20372969,0.20372969
-num__water_SecchiDepth (m),-0.20316832,0.20316832
-cat__country_Jamaica,0.20166925,0.20166925
-cat__country_American Samoa,-0.1982378,0.1982378
-cat__country_Papua New Guinea,-0.19372213,0.19372213
-cat__country_Lesotho,0.19103266,0.19103266
-cat__country_Kazakhstan,0.18889824,0.18889824
-cat__country_Burundi,-0.17702408,0.17702408
-cat__country_Kiribati,0.16353174,0.16353174
-cat__country_Slovakia,0.15839566,0.15839566
-cat__country_Sierra Leone,-0.15301944,0.15301944
-cat__country_Bosnia and Herzegovina,0.15011662,0.15011662
-cat__country_Pacific island small states,0.14558864,0.14558864
-cat__country_Turks and Caicos Islands,0.13939592,0.13939592
-num__water_AirTemp (C),0.1313069,0.1313069
-cat__country_Sudan,-0.11929468,0.11929468
-cat__country_United Kingdom,0.1173957,0.1173957
-cat__country_Belarus,0.11020746,0.11020746
-cat__country_Channel Islands,0.1086243,0.1086243
-cat__country_Puerto Rico,0.10174003,0.10174003
-cat__country_Senegal,0.099465065,0.099465065
-cat__country_Burkina Faso,0.0972021,0.0972021
-cat__country_Norway,0.09166259,0.09166259
-cat__country_Switzerland,-0.09090199,0.09090199
-cat__country_Romania,0.090601,0.090601
-cat__country_Peru,0.08932019,0.08932019
-cat__country_Bahrain,0.08274484,0.08274484
-cat__country_Tonga,0.07603204,0.07603204
-cat__country_Oman,0.073182434,0.073182434
-cat__country_Trinidad and Tobago,0.07134437,0.07134437
-cat__country_Madagascar,0.070697986,0.070697986
-cat__country_Malaysia,0.06719243,0.06719243
-cat__country_Uganda,-0.06548479,0.06548479
-cat__country_Colombia,-0.0642143,0.0642143
-cat__country_Syria,0.0640423,0.0640423
-cat__country_Belgium,0.053937346,0.053937346
-cat__country_Saint Lucia,0.05310181,0.05310181
-cat__country_Gambia,-0.051148884,0.051148884
-cat__country_Malawi,-0.049065065,0.049065065
-cat__country_Yemen,0.046068177,0.046068177
-cat__country_Haiti,-0.044964433,0.044964433
-num__water_WaterTemp (C),0.04487864,0.04487864
-cat__country_Hong Kong,0.042232476,0.042232476
-cat__country_Italy,0.042085376,0.042085376
-cat__country_Jordan,-0.04164352,0.04164352
-cat__country_Mozambique,0.03904902,0.03904902
-cat__country_Timor,-0.034260165,0.034260165
-cat__country_Caribbean Small States,0.029433358,0.029433358
-cat__country_Azerbaijan,0.029347306,0.029347306
-cat__country_Solomon Islands,0.028903436,0.028903436
-cat__country_Armenia,0.025876109,0.025876109
-cat__country_Laos,-0.025113191,0.025113191
-cat__country_Togo,-0.024699366,0.024699366
-cat__country_Myanmar,-0.02452786,0.02452786
-cat__country_Zambia,-0.02440712,0.02440712
-cat__country_Nicaragua,-0.02427928,0.02427928
-cat__country_Liberia,0.022644427,0.022644427
-cat__country_United Arab Emirates,-0.019189218,0.019189218
-cat__country_Bolivia,-0.018507699,0.018507699
-cat__country_Paraguay,-0.017329436,0.017329436
-cat__country_Chile,0.016881097,0.016881097
-num__water_WaterDepth (m),-0.016301813,0.016301813
-cat__country_Bhutan,-0.015953854,0.015953854
-cat__country_Estonia,0.014291815,0.014291815
-cat__country_Algeria,0.013836581,0.013836581
-cat__country_Georgia,-0.012659386,0.012659386
-cat__country_Cyprus,-0.012513795,0.012513795
-cat__country_Tanzania,-0.011583192,0.011583192
-cat__country_Ethiopia,-0.010463199,0.010463199
-cat__country_Suriname,-0.010410493,0.010410493
-cat__country_Other small states,-0.009833872,0.009833872
-cat__country_Namibia,-0.0076679466,0.0076679466
-num__water_Salinity (ppt),-0.007524401,0.007524401
-cat__country_Bahamas,-0.006800909,0.006800909
-cat__country_Europe & Central Asia (excluding high income),0.0060284426,0.0060284426
-cat__country_Turkey,-0.005619857,0.005619857
-cat__country_Guinea-Bissau,-0.005478617,0.005478617
-cat__country_Saint Kitts and Nevis,-0.005115402,0.005115402
-cat__country_North Macedonia,0.0050296057,0.0050296057
-cat__country_Niger,-0.0049072765,0.0049072765
-cat__country_Morocco,-0.004763077,0.004763077
-cat__country_Small states,0.004205323,0.004205323
-cat__country_Iraq,0.0037532696,0.0037532696
-cat__country_Albania,0.0036099358,0.0036099358
-cat__country_Japan,0.0035981322,0.0035981322
-cat__country_Africa Eastern and Southern,0.0033926798,0.0033926798
-cat__country_Canada,0.0029994876,0.0029994876
-cat__country_Philippines,0.0028292339,0.0028292339
-cat__country_Dominica,0.002235682,0.002235682
-cat__country_Central African Republic,0.0017303871,0.0017303871
-cat__country_European Union,0.0016444006,0.0016444006
-cat__country_Guyana,0.001551831,0.001551831
-cat__country_Cuba,0.0010926632,0.0010926632
-cat__country_North America,0.0006099625,0.0006099625
-cat__country_Nauru,0.00038595803,0.00038595803
-cat__country_United States,0.00023667792,0.00023667792
-cat__country_High income,0.00013046889,0.00013046889
-num__precip_mm,0.0,0.0
-num__genomic_Num_T_global_mean,0.0,0.0
-num__genomic_Num_C_global_mean,0.0,0.0
-num__genomic_Num_G_global_mean,0.0,0.0
-num__genomic_AT_Content_global_mean,0.0,0.0
-num__genomic_GC_Content_global_mean,0.0,0.0
-num__humidity,0.0,0.0
+num__year,-0.9248203,0.9248203
+num__production,0.5735035,0.5735035
+cat__country_Faeroe Islands,0.54259086,0.54259086
+num__water_pH,-0.5158261,0.5158261
+cat__country_Netherlands,0.407856,0.407856
+cat__country_Fiji,0.40222666,0.40222666
+cat__country_Peru,0.32987696,0.32987696
+cat__country_Germany,0.32022992,0.32022992
+cat__country_Bulgaria,0.2895731,0.2895731
+cat__country_Pacific island small states,0.24750175,0.24750175
+cat__country_Lebanon,0.21100467,0.21100467
+num__water_WaterDepth (m),-0.20636587,0.20636587
+cat__country_Bosnia and Herzegovina,0.20294446,0.20294446
+cat__country_French Polynesia,0.20103173,0.20103173
+num__water_SecchiDepth (m),-0.2004601,0.2004601
+cat__country_Caribbean Small States,0.2004455,0.2004455
+cat__country_Senegal,0.1945295,0.1945295
+cat__country_Kazakhstan,0.16801085,0.16801085
+cat__country_Afghanistan,-0.15308456,0.15308456
+cat__country_Kiribati,0.15106352,0.15106352
+cat__country_Suriname,0.14884937,0.14884937
+cat__country_Saint Lucia,0.13057606,0.13057606
+cat__country_Thailand,0.12982953,0.12982953
+cat__country_Lesotho,0.124595694,0.124595694
+cat__country_Madagascar,0.1190288,0.1190288
+cat__country_United Kingdom,0.106454,0.106454
+cat__country_Azerbaijan,0.09166069,0.09166069
+cat__country_American Samoa,-0.09150012,0.09150012
+cat__country_Singapore,0.08832817,0.08832817
+cat__country_Solomon Islands,0.0875616,0.0875616
+cat__country_Trinidad and Tobago,0.08641235,0.08641235
+num__water_Salinity (ppt),-0.086173125,0.086173125
+cat__country_Malaysia,0.08542831,0.08542831
+cat__country_Other small states,-0.08512962,0.08512962
+cat__country_Japan,0.082148336,0.082148336
+cat__country_Austria,-0.08096498,0.08096498
+cat__country_Belgium,0.08005859,0.08005859
+cat__country_Gambia,-0.07966991,0.07966991
+cat__country_Bhutan,-0.074881166,0.074881166
+cat__country_Papua New Guinea,-0.06917033,0.06917033
+cat__country_Sweden,0.0686741,0.0686741
+cat__country_Chile,0.06731137,0.06731137
+cat__country_Slovakia,0.06572616,0.06572616
+cat__country_Nicaragua,-0.064636715,0.064636715
+cat__country_Ghana,-0.058198776,0.058198776
+cat__country_New Caledonia,0.056583717,0.056583717
+cat__country_Iraq,0.056093466,0.056093466
+cat__country_Mexico,0.055406466,0.055406466
+cat__country_Mozambique,0.054948248,0.054948248
+cat__country_New Zealand,0.051137783,0.051137783
+cat__country_Ireland,0.04693316,0.04693316
+cat__country_Sierra Leone,-0.045363,0.045363
+cat__country_Guinea,-0.04455455,0.04455455
+cat__country_Bolivia,-0.04411907,0.04411907
+cat__country_Seychelles,0.044101063,0.044101063
+cat__country_Uganda,-0.04103605,0.04103605
+cat__country_Yemen,0.04047055,0.04047055
+cat__country_Tonga,0.03855641,0.03855641
+cat__country_Guatemala,0.03829532,0.03829532
+num__water_AirTemp (C),-0.037788246,0.037788246
+cat__country_Switzerland,-0.037775714,0.037775714
+cat__country_Guyana,0.034651734,0.034651734
+cat__country_Armenia,0.034435473,0.034435473
+cat__country_Kenya,0.032687444,0.032687444
+cat__country_Burundi,-0.030845672,0.030845672
+cat__country_Oman,0.030100686,0.030100686
+num__water_WaterTemp (C),0.024017941,0.024017941
+cat__country_Guam,-0.020473825,0.020473825
+cat__country_Bahrain,0.017972302,0.017972302
+cat__country_Sri Lanka,0.01771259,0.01771259
+cat__country_Iceland,-0.017407503,0.017407503
+cat__country_Rwanda,-0.017332692,0.017332692
+cat__country_Algeria,0.016869437,0.016869437
+cat__country_Cyprus,-0.016608834,0.016608834
+cat__country_Paraguay,-0.015547853,0.015547853
+cat__country_Puerto Rico,-0.015279239,0.015279239
+cat__country_Nauru,0.013813008,0.013813008
+cat__country_Norway,0.013444068,0.013444068
+cat__country_Spain,0.01338869,0.01338869
+cat__country_Cuba,0.012478398,0.012478398
+cat__country_Romania,0.010687506,0.010687506
+cat__country_Niger,-0.010580679,0.010580679
+cat__country_Small states,0.009885984,0.009885984
+cat__country_Liberia,-0.009224239,0.009224239
+cat__country_Europe & Central Asia (IDA & IBRD),0.008843387,0.008843387
+cat__country_Kyrgyzstan,0.0077461,0.0077461
+cat__country_Europe & Central Asia (excluding high income),0.007190644,0.007190644
+cat__country_Jamaica,0.0068944767,0.0068944767
+cat__country_Bahamas,0.0067040026,0.0067040026
+cat__country_Malawi,-0.006563987,0.006563987
+cat__country_Zambia,-0.0061345804,0.0061345804
+cat__country_Argentina,-0.005941074,0.005941074
+cat__country_Jordan,-0.005614998,0.005614998
+cat__country_Belize,0.0050894297,0.0050894297
+cat__country_Palau,0.004750571,0.004750571
+cat__country_Togo,-0.0047448794,0.0047448794
+cat__country_United States,0.004050893,0.004050893
+cat__country_Italy,0.0038499285,0.0038499285
+cat__country_Brunei,0.0033850924,0.0033850924
+cat__country_Russia,0.00321808,0.00321808
+cat__country_Poland,0.0026268642,0.0026268642
+cat__country_Syria,0.0022609215,0.0022609215
+cat__country_North Korea,0.001667883,0.001667883
+cat__country_Africa Western and Central,0.0012861539,0.0012861539
+cat__country_Nigeria,0.0012676576,0.0012676576
+cat__country_Hungary,0.0012639889,0.0012639889
+cat__country_Dominica,0.0011412434,0.0011412434
+cat__country_Turks and Caicos Islands,0.00095482985,0.00095482985
+cat__country_Middle East & North Africa,0.0008169869,0.0008169869
+cat__country_Lithuania,0.0002546779,0.0002546779
+cat__country_Arab World,0.00010964733,0.00010964733
+cat__country_Colombia,0.0,0.0
+cat__country_Chad,0.0,0.0
+cat__country_China,0.0,0.0
+cat__country_Cote d'Ivoire,0.0,0.0
 cat__country_Croatia,0.0,0.0
-cat__country_World,0.0,0.0
-cat__country_Vietnam,0.0,0.0
-cat__country_Democratic Republic of Congo,0.0,0.0
-cat__country_Denmark,0.0,0.0
-cat__country_Dominican Republic,0.0,0.0
-cat__country_Early-demographic dividend,0.0,0.0
-cat__country_Czechia,0.0,0.0
-cat__country_East Asia & Pacific,0.0,0.0
-cat__country_Uruguay,0.0,0.0
-cat__country_Vanuatu,0.0,0.0
-num__genomic_Num_A_global_mean,0.0,0.0
-num__genomic_Sequence_Length_global_mean,0.0,0.0
-cat__country_Upper middle income,0.0,0.0
-cat__country_Ukraine,0.0,0.0
-num__genomic_kmer_3_freq_global_mean,0.0,0.0
+cat__country_Congo,0.0,0.0
+cat__country_Costa Rica,0.0,0.0
+cat__country_Bangladesh,0.0,0.0
+cat__country_Antigua and Barbuda,0.0,0.0
+cat__country_Africa Eastern and Southern,0.0,0.0
+cat__country_Albania,0.0,0.0
+cat__country_Israel,0.0,0.0
 cat__country_India,0.0,0.0
-cat__country_Iceland,0.0,0.0
-cat__country_IDA total,0.0,0.0
 cat__country_IDA only,0.0,0.0
 cat__country_IDA blend,0.0,0.0
-cat__country_IDA & IBRD total,0.0,0.0
-cat__country_IBRD only,0.0,0.0
-cat__country_Hungary,0.0,0.0
-cat__country_Honduras,0.0,0.0
-cat__country_Heavily indebted poor countries (HIPC),0.0,0.0
-cat__country_Guatemala,0.0,0.0
-cat__country_Guinea,0.0,0.0
-cat__country_Guam,0.0,0.0
-cat__country_Ghana,0.0,0.0
+cat__country_IDA total,0.0,0.0
+cat__country_Iran,0.0,0.0
+cat__country_Indonesia,0.0,0.0
 cat__country_Greece,0.0,0.0
+cat__country_Guinea-Bissau,0.0,0.0
+cat__country_Haiti,0.0,0.0
+cat__country_High income,0.0,0.0
+cat__country_Heavily indebted poor countries (HIPC),0.0,0.0
+cat__country_Honduras,0.0,0.0
+cat__country_Hong Kong,0.0,0.0
+cat__country_IBRD only,0.0,0.0
+cat__country_IDA & IBRD total,0.0,0.0
 cat__country_Grenada,0.0,0.0
-cat__country_Eswatini,0.0,0.0
-cat__country_Europe & Central Asia (IDA & IBRD),0.0,0.0
-cat__country_Euro area,0.0,0.0
-cat__country_Gabon,0.0,0.0
-cat__country_France,0.0,0.0
-cat__country_French Polynesia,0.0,0.0
-cat__country_Fragile and conflict affected situations,0.0,0.0
-cat__country_Finland,0.0,0.0
-cat__country_Europe & Central Asia,0.0,0.0
-cat__country_East Asia & Pacific (IDA & IBRD),0.0,0.0
-cat__country_Ecuador,0.0,0.0
-cat__country_East Asia & Pacific (excluding high income),0.0,0.0
-cat__country_Egypt,0.0,0.0
-cat__country_El Salvador,0.0,0.0
-cat__country_Equatorial Guinea,0.0,0.0
+cat__country_Estonia,0.0,0.0
 cat__country_Eritrea,0.0,0.0
-cat__country_Turkmenistan,0.0,0.0
-cat__country_United States Virgin Islands,0.0,0.0
-cat__country_Tuvalu,0.0,0.0
-cat__country_Venezuela,0.0,0.0
-cat__country_Uzbekistan,0.0,0.0
-cat__country_Latvia,0.0,0.0
-cat__country_Libya,0.0,0.0
-cat__country_Lebanon,0.0,0.0
-cat__country_Kenya,0.0,0.0
+cat__country_Equatorial Guinea,0.0,0.0
+cat__country_El Salvador,0.0,0.0
+cat__country_Egypt,0.0,0.0
+cat__country_Ecuador,0.0,0.0
+cat__country_Europe & Central Asia,0.0,0.0
+cat__country_European Union,0.0,0.0
+cat__country_Ethiopia,0.0,0.0
+cat__country_Euro area,0.0,0.0
+cat__country_Finland,0.0,0.0
+cat__country_France,0.0,0.0
+cat__country_Fragile and conflict affected situations,0.0,0.0
+cat__country_Gabon,0.0,0.0
+cat__country_Georgia,0.0,0.0
+cat__country_East Asia & Pacific (IDA & IBRD),0.0,0.0
+cat__country_East Asia & Pacific,0.0,0.0
+cat__country_Early-demographic dividend,0.0,0.0
+cat__country_Dominican Republic,0.0,0.0
+cat__country_Denmark,0.0,0.0
+cat__country_Democratic Republic of Congo,0.0,0.0
+cat__country_Czechia,0.0,0.0
+cat__country_East Asia & Pacific (excluding high income),0.0,0.0
+cat__country_Eswatini,0.0,0.0
+cat__country_Australia,0.0,0.0
+cat__country_Aruba,0.0,0.0
+cat__country_Angola,0.0,0.0
+cat__country_Benin,0.0,0.0
+cat__country_Barbados,0.0,0.0
+cat__country_Belarus,0.0,0.0
+cat__country_Botswana,0.0,0.0
+cat__country_Cambodia,0.0,0.0
+cat__country_Burkina Faso,0.0,0.0
+cat__country_Brazil,0.0,0.0
+cat__country_British Virgin Islands,0.0,0.0
+cat__country_Central African Republic,0.0,0.0
+cat__country_Central Europe and the Baltics,0.0,0.0
+cat__country_Canada,0.0,0.0
+cat__country_Cameroon,0.0,0.0
+cat__country_Channel Islands,0.0,0.0
+cat__country_Middle income,0.0,0.0
+cat__country_Middle East & North Africa (excluding high income),0.0,0.0
+cat__country_Middle East & North Africa (IDA & IBRD),0.0,0.0
+cat__country_Moldova,0.0,0.0
+cat__country_Latin America & Caribbean (IDA & IBRD),0.0,0.0
+cat__country_Latin America & Caribbean (excluding high income),0.0,0.0
 cat__country_Latin America & Caribbean,0.0,0.0
+cat__country_Portugal,0.0,0.0
+cat__country_Philippines,0.0,0.0
+cat__country_Panama,0.0,0.0
+cat__country_Palestine,0.0,0.0
+cat__country_OECD members,0.0,0.0
+cat__country_Northern Mariana Islands,0.0,0.0
+cat__country_Pakistan,0.0,0.0
+cat__country_North Macedonia,0.0,0.0
+cat__country_Montenegro,0.0,0.0
+cat__country_Nepal,0.0,0.0
+cat__country_Morocco,0.0,0.0
+cat__country_Myanmar,0.0,0.0
+cat__country_North America,0.0,0.0
+cat__country_Namibia,0.0,0.0
+cat__country_Kuwait,0.0,0.0
+cat__country_Laos,0.0,0.0
+cat__country_Low & middle income,0.0,0.0
+cat__country_Libya,0.0,0.0
+cat__country_Least developed countries: UN classification,0.0,0.0
+cat__country_Latvia,0.0,0.0
+cat__country_Late-demographic dividend,0.0,0.0
+cat__country_Mali,0.0,0.0
 cat__country_Low income,0.0,0.0
 cat__country_Lower middle income,0.0,0.0
 cat__country_Marshall Islands,0.0,0.0
-cat__country_Least developed countries: UN classification,0.0,0.0
-cat__country_Latin America & Caribbean (excluding high income),0.0,0.0
-cat__country_Latin America & Caribbean (IDA & IBRD),0.0,0.0
-cat__country_Low & middle income,0.0,0.0
-cat__country_Lithuania,0.0,0.0
-cat__country_Costa Rica,0.0,0.0
-cat__country_Congo,0.0,0.0
-cat__country_Kyrgyzstan,0.0,0.0
-cat__country_Late-demographic dividend,0.0,0.0
-cat__country_Kuwait,0.0,0.0
-cat__country_Cote d'Ivoire,0.0,0.0
-cat__country_Cameroon,0.0,0.0
-cat__country_Cambodia,0.0,0.0
-cat__country_Iran,0.0,0.0
-cat__country_Central Europe and the Baltics,0.0,0.0
-cat__country_Chad,0.0,0.0
-cat__country_China,0.0,0.0
-cat__country_Israel,0.0,0.0
-cat__country_Indonesia,0.0,0.0
-cat__country_Palau,0.0,0.0
-cat__country_Pakistan,0.0,0.0
-cat__country_OECD members,0.0,0.0
-cat__country_Northern Mariana Islands,0.0,0.0
-cat__country_North Korea,0.0,0.0
-cat__country_Nepal,0.0,0.0
-cat__country_New Caledonia,0.0,0.0
-cat__country_Nigeria,0.0,0.0
-cat__country_Micronesia (country),0.0,0.0
-cat__country_Mexico,0.0,0.0
-cat__country_Middle East & North Africa,0.0,0.0
-cat__country_Middle East & North Africa (IDA & IBRD),0.0,0.0
-cat__country_Middle income,0.0,0.0
-cat__country_Middle East & North Africa (excluding high income),0.0,0.0
-cat__country_Montenegro,0.0,0.0
-cat__country_Moldova,0.0,0.0
 cat__country_Malta,0.0,0.0
-cat__country_Mali,0.0,0.0
 cat__country_Mauritius,0.0,0.0
-cat__country_Poland,0.0,0.0
-cat__country_Qatar,0.0,0.0
-cat__country_Brunei,0.0,0.0
-cat__country_British Virgin Islands,0.0,0.0
-cat__country_Portugal,0.0,0.0
-cat__country_Benin,0.0,0.0
-cat__country_Belize,0.0,0.0
-cat__country_Barbados,0.0,0.0
-cat__country_Botswana,0.0,0.0
-cat__country_Brazil,0.0,0.0
-cat__country_Bangladesh,0.0,0.0
-cat__country_Panama,0.0,0.0
-cat__country_Palestine,0.0,0.0
+cat__country_Micronesia (country),0.0,0.0
+cat__country_Serbia,0.0,0.0
+cat__country_Saint Vincent and the Grenadines,0.0,0.0
+cat__country_Saint Kitts and Nevis,0.0,0.0
+cat__country_Post-demographic dividend,0.0,0.0
+cat__country_Sudan,0.0,0.0
+cat__country_Sub-Saharan Africa (excluding high income),0.0,0.0
+cat__country_Sub-Saharan Africa (IDA & IBRD),0.0,0.0
+cat__country_Sub-Saharan Africa,0.0,0.0
+cat__country_South Korea,0.0,0.0
+cat__country_South Sudan,0.0,0.0
+cat__country_South Asia,0.0,0.0
+cat__country_South Asia (IDA & IBRD),0.0,0.0
 cat__country_South Africa,0.0,0.0
 cat__country_Slovenia,0.0,0.0
-cat__country_Serbia,0.0,0.0
-cat__country_Singapore,0.0,0.0
+cat__country_Pre-demographic dividend,0.0,0.0
+cat__country_Qatar,0.0,0.0
 cat__country_Saudi Arabia,0.0,0.0
 cat__country_Samoa,0.0,0.0
-cat__country_Rwanda,0.0,0.0
-cat__country_Saint Vincent and the Grenadines,0.0,0.0
-cat__country_Post-demographic dividend,0.0,0.0
-cat__country_Pre-demographic dividend,0.0,0.0
-cat__country_Russia,0.0,0.0
-cat__country_Africa Western and Central,0.0,0.0
-cat__country_Sri Lanka,0.0,0.0
-cat__country_South Asia,0.0,0.0
-cat__country_South Sudan,0.0,0.0
-cat__country_South Asia (IDA & IBRD),0.0,0.0
-cat__country_Aruba,0.0,0.0
-cat__country_Argentina,0.0,0.0
-cat__country_Arab World,0.0,0.0
-cat__country_Antigua and Barbuda,0.0,0.0
-cat__country_Angola,0.0,0.0
-cat__country_Sub-Saharan Africa,0.0,0.0
-num__genomic_Mutation_Flag_global_mean,0.0,0.0
-cat__country_Australia,0.0,0.0
 cat__country_Tajikistan,0.0,0.0
-cat__country_Sub-Saharan Africa (excluding high income),0.0,0.0
-cat__country_Austria,0.0,0.0
-cat__country_Sub-Saharan Africa (IDA & IBRD),0.0,0.0
+cat__country_Timor,0.0,0.0
+cat__country_Tuvalu,0.0,0.0
+cat__country_Turkmenistan,0.0,0.0
+cat__country_Turkey,0.0,0.0
 cat__country_Tunisia,0.0,0.0
-cat__country_Thailand,0.0,0.0
-num__temperature_celsius,0.0,0.0
+cat__country_Tanzania,0.0,0.0
+cat__country_United States Virgin Islands,0.0,0.0
+cat__country_United Arab Emirates,0.0,0.0
+cat__country_Ukraine,0.0,0.0
+cat__country_Uruguay,0.0,0.0
+cat__country_Upper middle income,0.0,0.0
+cat__country_Uzbekistan,0.0,0.0
+cat__country_Vanuatu,0.0,0.0
+cat__country_Vietnam,0.0,0.0
+cat__country_Venezuela,0.0,0.0
+cat__country_World,0.0,0.0
 cat__country_Zimbabwe,0.0,0.0

@@ -86,7 +86,11 @@ def productivity_features(df: pd.DataFrame) -> pd.DataFrame:
         "disease_risk_score",
         "genomic_Disease_Risk_global_mode",
     ]
-    return df.drop(columns=[c for c in drop_cols if c in df.columns], errors="ignore").copy()
+    out = df.drop(columns=[c for c in drop_cols if c in df.columns], errors="ignore").copy()
+    if "year" in out.columns:
+        out["year"] = pd.to_numeric(out["year"], errors="coerce")
+        out["decade"] = (out["year"] // 10) * 10
+    return out
 
 
 def build_productivity_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
@@ -162,9 +166,14 @@ def render_full_tables() -> str:
     lines.append("")
     lines.append("This file is generated from the current benchmark CSVs in results/.")
     lines.append("")
+    lines.append("## Feature Cleanup Note")
+    lines.append("")
+    lines.append("The current benchmark uses the official 9-column dataset: country, year, production, and six time-bucket water-quality features. Climate columns were excluded because the climate extract has no production-year overlap, and genomic global aggregates were excluded because no production-compatible join key exists. Earlier benchmarks containing zero-variance climate/genomic columns are not valid evidence of predictive performance. The current PSG result is the honest post-cleanup baseline.")
+    lines.append("")
 
     lines.append("## Table II - Productivity Models")
-    prod_cols = ["model", "accuracy", "precision_macro", "recall_macro", "f1_macro", "train_seconds", "infer_ms_per_1000", "model_size_mb", "peak_train_ram_mb"]
+    prod_cols = ["model", "train_accuracy", "test_accuracy", "accuracy", "precision_macro", "recall_macro", "f1_macro", "train_seconds", "infer_ms_per_1000", "model_size_mb", "peak_train_ram_mb"]
+    prod_cols = [c for c in prod_cols if c in productivity.columns]
     prod_df = productivity[prod_cols].copy()
     lines.extend(markdown_table(prod_cols, rows_from_df(prod_df, set(prod_cols[1:])), right_align=[False] + [True] * (len(prod_cols) - 1)))
     lines.append("")

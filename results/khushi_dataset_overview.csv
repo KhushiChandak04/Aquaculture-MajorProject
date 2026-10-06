@@ -1,6 +1,6 @@
 metric,value
 rows,11657
-columns,22
-numeric_columns,20
-object_columns,2
+columns,9
+numeric_columns,8
+object_columns,1
 missing_cells,0

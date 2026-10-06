@@ -3,16 +3,16 @@
   "test_size": 0.2,
   "random_state": 42,
   "class_distribution": {
-    "Low": 5888,
-    "Medium": 3555,
+    "Low": 5981,
+    "Medium": 3462,
     "High": 2214
   },
   "train_shape": [
     9325,
-    21
+    9
   ],
   "test_shape": [
     2332,
-    21
+    9
   ]
 }

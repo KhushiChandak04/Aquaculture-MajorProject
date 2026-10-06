@@ -12,13 +12,13 @@ Selected Strong Model:
 
 Selected Model Metrics:
   model  accuracy  precision_macro  recall_macro  f1_macro  train_seconds  infer_ms_per_1000  model_size_mb  peak_train_ram_mb
-XGBoost  0.894511         0.915433      0.838723  0.862627       0.550927           4.584091       0.977524           5.757369
+XGBoost   0.90566         0.924695      0.862756  0.886158       0.946913          10.212307       0.972785           3.210828
 
 All Tested Model Outcomes:
                           model  accuracy  precision_macro  recall_macro  f1_macro  train_seconds  infer_ms_per_1000  model_size_mb  peak_train_ram_mb
-                        XGBoost  0.894511         0.915433      0.838723  0.862627       0.550927           4.584091       0.977524           5.757369
-                   DecisionTree  0.875214         0.897599      0.819201  0.844591       0.052250           1.682161       0.014544           5.758048
-                   RandomForest  0.860635         0.847703      0.816377  0.828974       1.573528          15.359262       0.633478           9.755580
-                     ExtraTrees  0.861063         0.895261      0.802243  0.832291       0.878097          17.710034       3.101816           8.109873
-             LogisticRegression  0.736278         0.714901      0.729112  0.718307       0.216467           1.712993       0.014207           5.808034
-LogisticRegression_XAI_Improved  0.738851         0.722486      0.733695  0.723355       0.146303           1.624614       0.012559           2.847890
+                        XGBoost  0.905660         0.924695      0.862756  0.886158       0.946913          10.212307       0.972785           3.210828
+                   DecisionTree  0.901801         0.921607      0.859503  0.882633       0.175620           3.259434       0.013629           3.211505
+                     ExtraTrees  0.888937         0.917538      0.843390  0.871077       1.635256          29.702873       2.912088           6.959951
+                   RandomForest  0.821184         0.803095      0.811954  0.806423       2.682347          25.977144       0.616617           8.573539
+             LogisticRegression  0.749142         0.729468      0.754691  0.737239       0.360586           3.265652       0.012696           3.257726
+LogisticRegression_XAI_Improved  0.747856         0.729588      0.754462  0.736881       0.275768           3.511149       0.012696           3.214492

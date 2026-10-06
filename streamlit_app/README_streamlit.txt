@@ -104,4 +104,3 @@ Representative artifacts:
 - results/final_project_results_summary.md
 - results/xai_evidence_report.md
 - results/validation_audit.md
-- results/novelty_evidence.md

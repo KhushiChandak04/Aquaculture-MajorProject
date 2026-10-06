@@ -1,6 +1,6 @@
 feature,importance_mean,importance_std,method
-country,0.010071201852963885,9.552653963850105e-05,prediction_sensitivity
-water_Salinity (ppt),0.0,0.0,prediction_sensitivity
-water_SecchiDepth (m),0.0,0.0,prediction_sensitivity
-water_WaterTemp (C),0.0,0.0,prediction_sensitivity
-year,0.0,0.0,prediction_sensitivity
+water_SecchiDepth (m),0.19343313030796946,0.0018011402981410692,prediction_sensitivity
+water_pH,0.045753624431671955,0.001292280431000715,prediction_sensitivity
+water_WaterDepth (m),0.025036458780132116,0.000903102348983828,prediction_sensitivity
+water_AirTemp (C),0.01988933687912842,0.0007479947651711562,prediction_sensitivity
+country,0.002294758514197478,0.0002907541791212546,prediction_sensitivity

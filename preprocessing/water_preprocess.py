@@ -7,6 +7,9 @@ from sklearn.preprocessing import StandardScaler
 def preprocess_water(input_path, output_path):
     df = pd.read_csv(input_path)
 
+    if "country" not in df.columns:
+        print("Water join method: time_bucket_no_country_key")
+
     year_series = None
     if "Date" in df.columns:
         parsed = pd.to_datetime(df["Date"], errors="coerce")

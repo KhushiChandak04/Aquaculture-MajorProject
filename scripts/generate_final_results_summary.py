@@ -119,6 +119,7 @@ def build_summary_text() -> str:
     sustainability = normalize_sustainability(read_csv(RESULTS_DIR / "sustainability_metrics.csv"))
     genomic_metrics = read_csv(RESULTS_DIR / "janhavi_model_metrics.csv")
     genomic_importance = read_csv(RESULTS_DIR / "genomic_feature_importance.csv")
+    psg_metrics = read_csv(RESULTS_DIR / "psg_combined_metrics.csv")
 
     best_prod = pick_productivity_deployment_row(productivity)
     best_sus = pick_best_row(
@@ -144,6 +145,12 @@ def build_summary_text() -> str:
     lines.append("</p>")
     lines.append("")
     lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d')}")
+    lines.append("")
+    lines.append("## Feature Cleanup Interpretation")
+    lines.append("")
+    psg_accuracy = fmt_num(psg_metrics.iloc[0].get("accuracy", "N/A"), digits=4) if psg_metrics is not None and len(psg_metrics) else "N/A"
+    psg_f1 = fmt_num(psg_metrics.iloc[0].get("f1_macro", "N/A"), digits=4) if psg_metrics is not None and len(psg_metrics) else "N/A"
+    lines.append(f"The current results use the rebuilt official 9-column dataset: country, year, production, and six time-bucket water-quality features. Climate columns were excluded because the source covers 2024-2026 while production covers 1960-2018. Genomic global aggregates were excluded because no production-compatible join key exists. Country is label-encoded, year is numeric, decade is derived from year, and the production target uses log1p quantile construction. Earlier optimistic metrics that used zero-variance climate/genomic columns are not valid predictive evidence. The current PSG accuracy is {psg_accuracy} and macro-F1 is {psg_f1}; these are the honest augmented-feature results.")
     lines.append("")
 
     lines.append("## 1. Artifact Readiness Matrix")
@@ -217,6 +224,8 @@ def build_summary_text() -> str:
     else:
         prod_cols = [
             "model",
+            "train_accuracy",
+            "test_accuracy",
             "accuracy",
             "precision_macro",
             "recall_macro",

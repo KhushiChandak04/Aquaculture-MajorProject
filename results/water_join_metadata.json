@@ -1,0 +1,22 @@
+{
+  "water_join_method": "time_bucket_no_country_key",
+  "source": "data/raw/water_quality.csv",
+  "country_key_available": false,
+  "values_modified": false,
+  "interpretation": "Water features represent period-level measurements, not country-specific observations.",
+  "dropped_unsupported_feature_groups": [
+    "temperature_celsius",
+    "precip_mm",
+    "humidity",
+    "genomic_GC_Content_global_mean",
+    "genomic_AT_Content_global_mean",
+    "genomic_Sequence_Length_global_mean",
+    "genomic_Num_A_global_mean",
+    "genomic_Num_T_global_mean",
+    "genomic_Num_C_global_mean",
+    "genomic_Num_G_global_mean",
+    "genomic_kmer_3_freq_global_mean",
+    "genomic_Mutation_Flag_global_mean",
+    "genomic_Disease_Risk_global_mode"
+  ]
+}

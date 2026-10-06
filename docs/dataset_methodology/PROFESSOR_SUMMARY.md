@@ -1,6 +1,6 @@
 # Dataset Summary for Professor Review
 
-Generated: 2026-09-28 14:34:51
+Generated: 2026-10-07 00:34:44
 
 This summary is generated from the official raw, processed, and final datasets. No synthetic data is created. It describes the data actually used by the pipeline and does not infer geographic or sample-level variation that is absent from the files.
 
@@ -22,8 +22,8 @@ This summary is generated from the official raw, processed, and final datasets. 
 
 ## Final-Dataset Variation Findings
 
-- Constant columns: temperature_celsius, precip_mm, humidity, genomic_GC_Content_global_mean, genomic_AT_Content_global_mean, genomic_Sequence_Length_global_mean, genomic_Num_A_global_mean, genomic_Num_T_global_mean, genomic_Num_C_global_mean, genomic_Num_G_global_mean, genomic_kmer_3_freq_global_mean, genomic_Mutation_Flag_global_mean, genomic_Disease_Risk_global_mode.
-- Genomic columns with one unique value: 10 of 10.
+- Constant columns: None.
+- Genomic columns with one unique value: 0 of 0.
 - Water unique-value counts within each year (minimum, maximum):
   - `water_Salinity (ppt)`: 1, 1
   - `water_pH`: 1, 1
@@ -36,19 +36,6 @@ This summary is generated from the official raw, processed, and final datasets. 
 
 | Column | Unique values in final dataset |
 |---|---:|
-| `temperature_celsius` | 1 |
-| `precip_mm` | 1 |
-| `humidity` | 1 |
-| `genomic_GC_Content_global_mean` | 1 |
-| `genomic_AT_Content_global_mean` | 1 |
-| `genomic_Sequence_Length_global_mean` | 1 |
-| `genomic_Num_A_global_mean` | 1 |
-| `genomic_Num_T_global_mean` | 1 |
-| `genomic_Num_C_global_mean` | 1 |
-| `genomic_Num_G_global_mean` | 1 |
-| `genomic_kmer_3_freq_global_mean` | 1 |
-| `genomic_Mutation_Flag_global_mean` | 1 |
-| `genomic_Disease_Risk_global_mode` | 1 |
 
 ## Interpretation
 

@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import pandas as pd
 
@@ -79,6 +80,15 @@ def build_final_dataset(processed_dir):
     genomic_df = pd.read_csv(genomic_path)
     final_df = _add_constant_columns(final_df, genomic_df, prefix="genomic")
 
+    # Do not expose unsupported signals as model features. Climate has no
+    # production-year overlap, and genomic values have no production join key;
+    # both groups become constants after the current fallback aggregation.
+    unsupported_prefixes = ("temperature_celsius", "precip_mm", "humidity", "genomic_")
+    dropped_unsupported = [
+        col for col in final_df.columns if col.startswith(unsupported_prefixes)
+    ]
+    final_df = final_df.drop(columns=dropped_unsupported, errors="ignore")
+
     final_df = final_df.dropna(subset=["country", "year", "production"])
 
     numeric_cols = final_df.select_dtypes(include=["number"]).columns.tolist()
@@ -96,6 +106,31 @@ def build_final_dataset(processed_dir):
             final_df[col] = final_df[col].fillna("Unknown")
 
     final_df["year"] = pd.to_numeric(final_df["year"], errors="coerce").astype("Int64")
+
+    low_variance = {
+        col: int(final_df[col].nunique(dropna=False))
+        for col in final_df.columns
+        if final_df[col].nunique(dropna=False) < 5
+    }
+    if low_variance:
+        print(f"Warning: low-variance final columns: {low_variance}")
+
+    metadata_path = processed_dir.parent.parent / "results" / "water_join_metadata.json"
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "water_join_method": "time_bucket_no_country_key",
+                "source": "data/raw/water_quality.csv",
+                "country_key_available": False,
+                "values_modified": False,
+                "interpretation": "Water features represent period-level measurements, not country-specific observations.",
+                "dropped_unsupported_feature_groups": dropped_unsupported,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     final_path.parent.mkdir(parents=True, exist_ok=True)
     final_df.to_csv(final_path, index=False)

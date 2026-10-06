@@ -83,7 +83,7 @@ These values are regenerated from the checked-in benchmark CSVs and the notebook
 | Sustainability | MLP | 0.9481 | 0.9479 | Real notebook benchmark preserved in `results/sustainability_metrics.csv` |
 | Genomic | HistGB | 0.9468 | 0.9470 | Best genomic benchmark in the 8-model comparison |
 
-PSG fusion on the common 459-sample held-out subset is also generated from real predictions: accuracy 0.7233, precision 0.7233, recall 0.7229, F1 0.7230. See `results/psg_combined_metrics.csv` and `results/paper_results_tables.md`.
+PSG fusion on the common 459-sample held-out subset is also generated from real predictions: accuracy 0.7407, precision 0.7407, recall 0.7404, F1 0.7405. See `results/psg_combined_metrics.csv` and `results/paper_results_tables.md`.
 
 ### Methodology Note: PSG Fusion Rule
 The PSG combined row is computed as $R = 0.50\,P_r + 0.35\,S_r + 0.15\,G_r$ on the shared held-out samples. The continuous score is then discretized using **data-driven tertiles** of R itself, matching the quantile-based approach used for the production target. This ensures class balance and adapts to R's actual distribution, avoiding calibration bias from fixed thresholds.
@@ -150,7 +150,6 @@ Aquaculture-MajorProject/
 |  |- genomic_feature_importance.csv
 |  |- final_project_results_summary.md
 |  |- validation_audit.md
-|  |- novelty_evidence.md
 |- scripts/
 |  |- full_rebuild.py
 |  |- train_productivity_model.py
@@ -233,13 +232,12 @@ Primary generated outputs include:
 2. results/psg_combined_metrics.csv — Sample-level PSG fusion metrics on the common held-out subset
 3. results/final_project_results_summary.md — Consolidated evidence report for all tracks, regenerated from the real benchmark CSVs
 4. results/validation_audit.md — Validation and leakage audit
-5. results/novelty_evidence.md — Research novelty evidence
-6. results/full_dataset_summary.md — Comprehensive column-wise statistics
-7. results/track_dataset_summaries.md — Productivity, Sustainability, Genomic dataset splits and distributions
-8. results/track_dataset_statistics.csv — Class distribution statistics across tracks
-9. results/model_comparison_visualization.png — Top 3 models performance comparison (bar charts)
-10. results/model_comparison_summary.md — Detailed model comparison and recommendations
-11. Track-level metrics, plots, and explainability artifacts in results/
+5. results/full_dataset_summary.md — Comprehensive column-wise statistics
+6. results/track_dataset_summaries.md — Productivity, Sustainability, Genomic dataset splits and distributions
+7. results/track_dataset_statistics.csv — Class distribution statistics across tracks
+8. results/model_comparison_visualization.png — Top 3 models performance comparison (bar charts)
+9. results/model_comparison_summary.md — Detailed model comparison and recommendations
+10. Track-level metrics, plots, and explainability artifacts in results/
 
 ## <img src="https://img.shields.io/badge/Section-Project_Intent-14213D?style=flat-square&logo=academia&logoColor=white" alt="Project Intent" />
 This project is developed as a formally structured research-engineering system, not a demo-only dashboard. Its design priority is evidence-backed, reproducible, and interpretable model deployment for aquaculture decision intelligence under multi-signal uncertainty.

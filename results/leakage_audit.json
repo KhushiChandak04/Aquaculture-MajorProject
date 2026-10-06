@@ -3,21 +3,7 @@
   "full_dataset_rows": 11657,
   "duplicate_row_count": 0,
   "duplicate_country_year_count": 0,
-  "constant_columns": [
-    "temperature_celsius",
-    "precip_mm",
-    "humidity",
-    "genomic_GC_Content_global_mean",
-    "genomic_AT_Content_global_mean",
-    "genomic_Sequence_Length_global_mean",
-    "genomic_Num_A_global_mean",
-    "genomic_Num_T_global_mean",
-    "genomic_Num_C_global_mean",
-    "genomic_Num_G_global_mean",
-    "genomic_kmer_3_freq_global_mean",
-    "genomic_Mutation_Flag_global_mean",
-    "genomic_Disease_Risk_global_mode"
-  ],
+  "constant_columns": [],
   "train_only_transform_policy": "Pipeline preprocessing is fitted after each train split.",
   "target_threshold_policy": "Walk-forward thresholds are fitted from each historical training fold.",
   "synthetic_data_created": false
