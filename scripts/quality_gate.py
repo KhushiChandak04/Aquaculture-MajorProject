@@ -49,6 +49,9 @@ def main() -> int:
         BASE_DIR / "docs" / "dataset_methodology" / "PROFESSOR_SUMMARY.md",
         RESULTS_DIR / "temporal_walk_forward.csv",
         RESULTS_DIR / "leakage_audit.json",
+        RESULTS_DIR / "reconstruction_readiness.json",
+        DATA_DIR / "genomic_sample_clusters.csv",
+        MODELS_DIR / "genomic_sample_clusterer.pkl",
     ]
 
     for p in required_files:

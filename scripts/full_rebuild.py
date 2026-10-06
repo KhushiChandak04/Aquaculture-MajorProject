@@ -1,6 +1,8 @@
 from pathlib import Path
 
 from preprocessing.run_all import run_all as run_preprocessing
+from preprocessing.check_reconstruction_readiness import main as check_reconstruction_readiness
+from preprocessing.genomic_sample_clustering import main as cluster_genomic_samples
 
 from scripts.build_sustainability_model import main as build_sustainability_model
 from scripts.generate_final_results_summary import main as generate_summary
@@ -22,34 +24,40 @@ def main() -> None:
     print("[1/9] Running shared preprocessing pipeline...")
     run_preprocessing()
 
-    print("[2/9] Training productivity model and benchmarks...")
+    print("[2/13] Checking official-source reconstruction readiness...")
+    check_reconstruction_readiness()
+
+    print("[3/13] Clustering official genomic samples without production integration...")
+    cluster_genomic_samples()
+
+    print("[4/13] Training productivity model and benchmarks...")
     train_productivity_model()
 
-    print("[3/9] Training genomic model and benchmarks...")
+    print("[5/13] Training genomic model and benchmarks...")
     train_genomic_model()
 
-    print("[4/9] Building sustainability model bundle...")
+    print("[6/13] Building sustainability model bundle...")
     build_sustainability_model()
 
-    print("[5/9] Recomputing genomic importance (prediction sensitivity)...")
+    print("[7/13] Recomputing genomic importance (prediction sensitivity)...")
     recompute_genomic_importance()
 
-    print("[6/9] Running validation and leakage audit...")
+    print("[8/13] Running validation and leakage audit...")
     run_validation_audit()
 
-    print("[7/9] Generating visual reports...")
+    print("[9/13] Generating visual reports...")
     generate_visual_reports()
 
-    print("[8/10] Generating paper-ready tables and PSG fusion metrics...")
+    print("[10/13] Generating paper-ready tables and PSG fusion metrics...")
     generate_paper_results()
 
-    print("[9/10] Regenerating consolidated project summary...")
+    print("[11/13] Regenerating consolidated project summary...")
     generate_summary()
 
-    print("[10/11] Generating dataset methodology audit...")
+    print("[12/13] Generating dataset methodology audit...")
     generate_dataset_docs()
 
-    print("[11/11] Running quality gate checks...")
+    print("[13/13] Running quality gate checks...")
     gate_code = run_quality_gate()
     if gate_code != 0:
         raise SystemExit(gate_code)

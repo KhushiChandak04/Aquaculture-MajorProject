@@ -1,0 +1,48 @@
+{
+  "official_sources_only": true,
+  "synthetic_values_created": false,
+  "water_country_key_available": false,
+  "climate_production_year_overlap": [],
+  "water_production_year_overlap": [
+    1989,
+    1990,
+    1991,
+    1992,
+    1993,
+    1994,
+    1995,
+    1996,
+    1997,
+    1998,
+    1999,
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007,
+    2008,
+    2009,
+    2010,
+    2011,
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018
+  ],
+  "water_geographic_reconstruction_ready": false,
+  "reason_water_not_ready": [
+    "water_quality.csv has no country key",
+    "climate source has no overlap with production years"
+  ],
+  "genomic_production_mapping_key_available": false,
+  "reason_genomic_not_ready": [
+    "genomic.csv has Sample_ID but no production-compatible sample, farm, species, or country key"
+  ],
+  "approved_action": "Keep final_dataset.csv unchanged until official join keys and overlapping observations are supplied."
+}

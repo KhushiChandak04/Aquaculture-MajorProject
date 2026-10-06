@@ -126,6 +126,8 @@ Running python run_all.py executes scripts/full_rebuild.py with the following pi
 
 The temporal audit writes `results/temporal_walk_forward.csv` and `results/leakage_audit.json`. These outputs use only the official processed dataset; no geographic water values or genomic strain assignments are synthesized.
 
+Official genomic samples are clustered separately in `data/processed/genomic_sample_clusters.csv` for exploratory analysis. They are not merged into the production table because no official production-compatible mapping key exists. Geographic water reconstruction is currently blocked because the water source has no country key and the climate extract does not overlap production years.
+
 ## <img src="https://img.shields.io/badge/Section-Repository_Structure-6C757D?style=flat-square&logo=files&logoColor=white" alt="Repository Structure" />
 ```text
 Aquaculture-MajorProject/
