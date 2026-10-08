@@ -42,6 +42,23 @@ PRIMARY_SPIRAL_FILES = {
 PRODUCTIVITY_MODEL_PATH = MODELS_DIR / "productivity_model.pkl"
 SUSTAINABILITY_MODEL_PATH = MODELS_DIR / "sustainability_model.pkl"
 FEATURE_SELECTOR_PATH = MODELS_DIR / "feature_selector.pkl"
+DEPLOYMENT_URL = "https://khushichandak04-aquaculture-majorprojec-streamlit-appapp-gsbdkq.streamlit.app/"
+WATER_FEATURES = [
+    "water_Salinity (ppt)",
+    "water_pH",
+    "water_SecchiDepth (m)",
+    "water_WaterDepth (m)",
+    "water_WaterTemp (C)",
+    "water_AirTemp (C)",
+]
+WATER_LABELS = {
+    "water_Salinity (ppt)": "Salinity (scaled)",
+    "water_pH": "pH (scaled)",
+    "water_SecchiDepth (m)": "Secchi depth (scaled)",
+    "water_WaterDepth (m)": "Water depth (scaled)",
+    "water_WaterTemp (C)": "Water temperature (scaled)",
+    "water_AirTemp (C)": "Air temperature (scaled)",
+}
 
 
 def safe_read_csv(path: Path) -> pd.DataFrame | None:
@@ -53,8 +70,17 @@ def safe_read_csv(path: Path) -> pd.DataFrame | None:
         return None
 
 
+def file_signature(path: Path) -> tuple[int, int]:
+    try:
+        stat = path.stat()
+        return stat.st_mtime_ns, stat.st_size
+    except OSError:
+        return 0, 0
+
+
 @st.cache_resource
-def load_pickle(path: Path):
+def load_pickle(path: Path, modified_ns: int, size_bytes: int):
+    del modified_ns, size_bytes
     if not path.exists():
         return None
     try:
@@ -64,12 +90,14 @@ def load_pickle(path: Path):
 
 
 @st.cache_data
-def load_data() -> pd.DataFrame | None:
+def load_data(modified_ns: int, size_bytes: int) -> pd.DataFrame | None:
+    del modified_ns, size_bytes
     return safe_read_csv(DATA_FILE)
 
 
 @st.cache_data
-def load_markdown_file(path: Path) -> str | None:
+def load_markdown_file(path: Path, modified_ns: int, size_bytes: int) -> str | None:
+    del modified_ns, size_bytes
     if not path.exists():
         return None
     try:
@@ -79,7 +107,8 @@ def load_markdown_file(path: Path) -> str | None:
 
 
 @st.cache_data
-def load_text_file(path: Path) -> str | None:
+def load_text_file(path: Path, modified_ns: int, size_bytes: int) -> str | None:
+    del modified_ns, size_bytes
     if not path.exists():
         return None
     try:
@@ -149,6 +178,8 @@ def build_aligned_input(profile: dict[str, Any], model_obj, reference_df: pd.Dat
     for col in features:
         if col in profile:
             aligned[col] = profile[col]
+        elif col == "decade" and "year" in profile:
+            aligned[col] = (float(profile["year"]) // 10) * 10
         elif col in reference_df.columns:
             if pd.api.types.is_numeric_dtype(reference_df[col]):
                 aligned[col] = float(reference_df[col].median())
@@ -530,6 +561,8 @@ def build_aligned_reference_frame(
         for col in features:
             if col in reference_df.columns:
                 aligned[col] = reference_df[col]
+            elif col == "decade" and "year" in reference_df.columns:
+                aligned[col] = (pd.to_numeric(reference_df["year"], errors="coerce") // 10) * 10
             else:
                 aligned[col] = 0.0
         out = pd.DataFrame(aligned, columns=features)
@@ -583,6 +616,7 @@ def friendly_model_name(model_obj) -> str:
     name = est.__class__.__name__
     mapping = {
         "XGBClassifier": "XGBoost",
+        "LGBMClassifier": "LightGBM",
         "Sequential": "MLP",
         "HistGradientBoostingClassifier": "HistGB",
         "ExtraTreesClassifier": "ExtraTrees",
@@ -705,25 +739,6 @@ def explain_sustainability_track(
         return exp_df, "fallback"
     except Exception:
         return None, "none"
-
-
-def genomic_feature_columns(df: pd.DataFrame) -> list[str]:
-    genomic_cols = [c for c in df.columns if c.startswith("genomic_")]
-    context_cols = [c for c in ["country", "year", "temperature_celsius", "precip_mm", "humidity"] if c in df.columns]
-    cols = genomic_cols + context_cols
-    if not cols:
-        cols = [
-            c
-            for c in df.columns
-            if c
-            not in [
-                "production",
-                "Production_Category",
-                "disease_risk_target",
-                "disease_risk_score",
-            ]
-        ]
-    return cols
 
 
 def build_profile_frame(profile: dict[str, Any], reference_df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
@@ -955,21 +970,7 @@ def policy_recommendations(prod_label: str | None, sus_label: str | None, profil
     else:
         recs.append(("success", "Sustainability level is high. Keep existing control strategy active."))
 
-    ammo_col = first_existing(["water_Ammonia (mg/L)", "ammonia", "water_ammonia"], pd.DataFrame([profile]))
-    if ammo_col is not None:
-        try:
-            if float(profile.get(ammo_col, 0.0)) > 0.5:
-                recs.append(("warning", "Reduce ammonia concentration through feed-waste control and water exchange planning."))
-        except Exception:
-            pass
-
-    do_col = first_existing(["water_DissolvedOxygen (mg/L)", "dissolved_oxygen", "water_DO"], pd.DataFrame([profile]))
-    if do_col is not None:
-        try:
-            if float(profile.get(do_col, 99.0)) < 4.0:
-                recs.append(("warning", "Improve oxygen levels with aeration and lower nighttime stress load."))
-        except Exception:
-            pass
+    recs.append(("info", "Official water measurements are period-level covariates and are not country-specific."))
 
     return recs
 
@@ -1056,22 +1057,25 @@ st.markdown(
     """
 <div class="header-card">
   <h2 style="margin-bottom:0.2rem;">Aquaculture Intelligence Platform</h2>
-  <div style="font-size:1rem;color:#1f4f79;margin-bottom:0.3rem;">Explainable AI for Productivity, Sustainability, and Risk Intelligence</div>
-  <div class="small-note">AI-powered decision support for aquaculture farms using climate, water, genomic, and production-linked signals</div>
+    <div style="font-size:1rem;color:#1f4f79;margin-bottom:0.3rem;">Explainable decision support for productivity and sustainability</div>
+    <div class="small-note">Current prediction inputs: country, year, and six time-bucket water-quality measurements</div>
 </div>
 """,
     unsafe_allow_html=True,
 )
 
-productivity_model = load_pickle(PRODUCTIVITY_MODEL_PATH)
-sustainability_bundle = load_pickle(SUSTAINABILITY_MODEL_PATH)
-feature_selector_model = load_pickle(FEATURE_SELECTOR_PATH)
+st.link_button("Open deployed app", DEPLOYMENT_URL)
 
-data_df = load_data()
+productivity_model = load_pickle(PRODUCTIVITY_MODEL_PATH, *file_signature(PRODUCTIVITY_MODEL_PATH))
+sustainability_bundle = load_pickle(SUSTAINABILITY_MODEL_PATH, *file_signature(SUSTAINABILITY_MODEL_PATH))
+feature_selector_model = load_pickle(FEATURE_SELECTOR_PATH, *file_signature(FEATURE_SELECTOR_PATH))
+
+data_df = load_data(*file_signature(DATA_FILE))
 results_graphs = filter_primary_spiral_graphs(load_results_graphs())
 total_result_graphs = len(results_graphs)
 result_artifacts = load_result_artifacts()
-xai_evidence_md = load_markdown_file(XAI_EVIDENCE_REPORT_PATH)
+xai_evidence_md = load_markdown_file(XAI_EVIDENCE_REPORT_PATH, *file_signature(XAI_EVIDENCE_REPORT_PATH))
+psg_metrics_df = safe_read_csv(RESULTS_DIR / "psg_combined_metrics.csv")
 
 st.sidebar.header("System Status")
 st.sidebar.write(f"Productivity model: {'Ready' if productivity_model is not None else 'Missing'}")
@@ -1110,7 +1114,7 @@ tabs = st.tabs([
 
 with tabs[0]:
     st.subheader("Overview")
-    st.caption("Use the tabs to move from prediction to explainability, forecasting, and policy actions.")
+    st.caption("Current models, cleaned dataset, and generated result metrics.")
     st.divider()
     left, right = st.columns([1.2, 1.0])
 
@@ -1118,14 +1122,14 @@ with tabs[0]:
         st.markdown(
             """
 <div class="section-card">
-<b>What this platform does</b><br>
-It helps aquaculture teams evaluate productivity and sustainability outcomes from climate, water, genomic, and farm context inputs.
+<b>Current modeling table</b><br>
+11,657 production records with country, year, and six period-level water-quality features.
 <br><br>
-<b>Why it is useful</b><br>
-It brings critical farm signals into one screen so teams can respond early and plan operations more confidently.
+<b>Climate and genomic data</b><br>
+Climate years do not overlap the production period. Genomic samples have no production-compatible join key, so both are excluded from farm-level predictions.
 <br><br>
-<b>What inputs it uses</b><br>
-Climate, water quality, genomic indicators, and production-linked context from the processed project dataset.
+<b>Water data limitation</b><br>
+Water measurements are joined by period and are not country-specific in the official source.
 </div>
 """,
             unsafe_allow_html=True,
@@ -1134,72 +1138,61 @@ Climate, water quality, genomic indicators, and production-linked context from t
     with right:
         k1, k2 = st.columns(2)
         k3, k4 = st.columns(2)
-        k1.metric("Productivity optimization", "Active")
-        k2.metric("Sustainability scoring", "Active")
-        k3.metric("Genomic-aware insights", "Active")
-        k4.metric("Decision support", "Interactive")
+        k1.metric("Productivity model", friendly_model_name(productivity_model))
+        k2.metric("Sustainability model", friendly_model_name(sustainability_bundle))
+        k3.metric("Dataset records", f"{len(data_df):,}")
+        k4.metric("Dataset columns", str(len(data_df.columns)))
+        if psg_metrics_df is not None and len(psg_metrics_df):
+            st.metric("PSG held-out accuracy", f"{float(psg_metrics_df.iloc[0]['accuracy']):.4f}")
+        st.caption("Genomic samples are analyzed separately; there is no source key for farm-level genomic predictions.")
 
 with tabs[1]:
     st.subheader("Predictions")
-    st.caption("Adjust farm inputs on the left and review model outputs on the right.")
+    st.caption("Adjust country, year, and source-scaled water features used by the current model.")
     st.divider()
     controls, outputs = st.columns([1.08, 1.0])
 
     with controls:
         st.markdown("### Inputs")
-        species = "Fish"
-        st.caption("Species profile: Generic Fish")
-        age_months = st.slider("Age (months)", 1, 36, 8, key="pred_age")
-        temperature = st.slider("Temperature (deg C)", 10.0, 40.0, 28.0, 0.5, key="pred_temp")
-        ph = st.slider("pH", 5.0, 9.5, 7.5, 0.1, key="pred_ph")
-        dissolved_oxygen = st.slider("Dissolved Oxygen (mg/L)", 0.0, 12.0, 5.5, 0.1, key="pred_do")
-        ammonia = st.slider("Ammonia (mg/L)", 0.0, 2.0, 0.25, 0.05, key="pred_amm")
-        rainfall = st.slider("Rainfall / climate input (mm)", -100.0, 300.0, 30.0, 5.0, key="pred_rain")
-
         countries = sorted(data_df["country"].dropna().astype(str).unique().tolist()) if "country" in data_df.columns else ["India"]
         country = st.selectbox("Country context", countries, index=(countries.index("India") if "India" in countries else 0), key="pred_country")
+        year_min = int(pd.to_numeric(data_df["year"], errors="coerce").min())
+        year_max = int(pd.to_numeric(data_df["year"], errors="coerce").max())
+        year_default = int(pd.to_numeric(data_df["year"], errors="coerce").median())
+        year = st.slider("Production year", year_min, year_max, year_default, key="pred_year")
 
         st.divider()
-        st.markdown("#### Live Input Snapshot")
-        l1, l2, l3, l4 = st.columns(4)
-        l1.metric("Temp", f"{temperature:.1f}")
-        l2.metric("pH", f"{ph:.1f}")
-        l3.metric("DO", f"{dissolved_oxygen:.1f}")
-        l4.metric("NH3", f"{ammonia:.2f}")
-
-        live_shift = (
-            abs(float(temperature) - 28.0) * 1.4
-            + abs(float(ph) - 7.5) * 8.0
-            + abs(float(dissolved_oxygen) - 5.5) * 2.2
-            + abs(float(ammonia) - 0.25) * 20.0
-            + abs(float(rainfall) - 30.0) * 0.12
-        )
-        st.metric("Input shift index", f"{live_shift:.1f}")
+        st.markdown("#### Water features")
+        st.caption("Values use the standardized scale stored by preprocessing; the source has no country key.")
+        water_profile = {}
+        shift_terms = []
+        for column in WATER_FEATURES:
+            values = pd.to_numeric(data_df[column], errors="coerce").dropna()
+            low = float(values.min())
+            high = float(values.max())
+            center = float(values.median())
+            spread = float(values.std(ddof=0))
+            if low == high:
+                low -= 0.5
+                high += 0.5
+            step = max((high - low) / 100.0, 0.01)
+            value = st.slider(
+                WATER_LABELS[column],
+                min_value=low,
+                max_value=high,
+                value=min(max(center, low), high),
+                step=step,
+                key=f"pred_{column}",
+            )
+            water_profile[column] = float(value)
+            shift_terms.append(abs(float(value) - center) / spread if spread > 0 else 0.0)
+        live_shift = float(np.mean(shift_terms)) if shift_terms else 0.0
+        st.metric("Mean feature shift (standard deviations)", f"{live_shift:.2f}")
 
     profile = dict(base_profile)
     profile["country"] = country
-
-    species_col = first_existing(["species", "farm_species"], data_df)
-    if species_col:
-        profile[species_col] = species
-
-    age_col = first_existing(["age", "age_months", "fish_age"], data_df)
-    if age_col:
-        profile[age_col] = float(age_months)
-
-    for col in ["temperature_celsius", "water_WaterTemp (C)"]:
-        if col in profile:
-            profile[col] = float(temperature)
-    if "water_pH" in profile:
-        profile["water_pH"] = float(ph)
-    for col in ["water_DissolvedOxygen (mg/L)", "dissolved_oxygen", "water_DO"]:
-        if col in profile:
-            profile[col] = float(dissolved_oxygen)
-    for col in ["water_Ammonia (mg/L)", "ammonia", "water_ammonia"]:
-        if col in profile:
-            profile[col] = float(ammonia)
-    if "precip_mm" in profile:
-        profile["precip_mm"] = float(rainfall)
+    profile["year"] = int(year)
+    profile.update(water_profile)
 
     st.session_state["latest_profile"] = dict(profile)
 
@@ -1243,15 +1236,15 @@ with tabs[1]:
             o2.caption(f"Confidence: {sus_conf:.3f}")
         o2.caption(f"Sustainability score: {sus_score:.1f}/100")
 
-        o3.metric("Genomic Signal", str(genomic_signal) if genomic_signal is not None else "N/A")
-        o3.caption("Derived from feature selector logic")
+        o3.metric("Auxiliary class signal", str(genomic_signal) if genomic_signal is not None else "N/A")
+        o3.caption("Context model only; no genomic-to-farm key exists in the source data.")
 
         st.divider()
         st.markdown("#### Decision Note")
         if prod_score >= 70:
             st.success("Current profile supports strong productivity conditions.")
         elif prod_score >= 45:
-            st.warning("Productivity is moderate. Fine-tune water and climate controls.")
+            st.warning("Productivity is moderate. Review the production context and period-level water features.")
         else:
             st.error("Productivity is constrained. Immediate optimization is recommended.")
 
@@ -1348,183 +1341,104 @@ with tabs[2]:
 
 with tabs[3]:
     st.subheader("Results Gallery")
-    st.caption("Complete archive view from results/: every image and every CSV/MD/TXT artifact.")
+    st.caption("Current model evidence first; archived figures and reports remain available below.")
     st.divider()
 
     g1, g2 = st.columns(2)
     g1.metric("Result images", f"{len(results_graphs)}")
     g2.metric("Result tables/docs", f"{len(result_artifacts)}")
 
-    st.markdown("### All Result Images")
-    if results_graphs:
-        st.caption(f"Showing all {len(results_graphs)} image files found in results/.")
-        image_cols = st.columns(2)
-        for i, pth in enumerate(results_graphs):
-            with image_cols[i % 2]:
-                st.image(str(pth), caption=pth.name, use_container_width=True)
-    else:
-        st.warning("No result image files were found in results/.")
+    gallery_tabs = st.tabs(["Current Charts", "All Charts", "Reports and Data"])
+    current_chart_names = [
+        "psg_track_weight_split.png",
+        "productivity_feature_shap_importance.png",
+        "model_comparison_visualization.png",
+        "all_tracks_train_vs_test_accuracy.png",
+        "productivity_spiral_all_models.png",
+        "sustainability_spiral_net_metrics.png",
+        "genomic_spiral_all_models.png",
+    ]
+    current_charts = [RESULTS_DIR / name for name in current_chart_names if (RESULTS_DIR / name).exists()]
 
-    st.divider()
-    st.markdown("### All Result Tables and Documents")
-    if result_artifacts:
-        for path in result_artifacts:
-            with st.expander(path.name, expanded=False):
-                suffix = path.suffix.lower()
-                if suffix == ".csv":
-                    df_art = safe_read_csv(path)
-                    if df_art is not None:
-                        st.caption(f"Rows: {len(df_art)} | Columns: {len(df_art.columns)}")
-                        st.dataframe(df_art, width="stretch", hide_index=True)
-                    else:
-                        raw_csv = load_text_file(path)
-                        if raw_csv:
-                            st.code(raw_csv, language="text")
-                        else:
-                            st.warning("Could not load this CSV artifact.")
-                elif suffix == ".md":
-                    md_text = load_markdown_file(path)
-                    if md_text:
-                        st.markdown(md_text)
-                    else:
-                        st.warning("Could not load this markdown artifact.")
-                else:
-                    text_blob = load_text_file(path)
-                    if text_blob:
-                        st.code(text_blob, language="text")
-                    else:
-                        st.warning("Could not load this text artifact.")
-    else:
-        st.warning("No CSV/MD/TXT result artifacts were found in results/.")
+    with gallery_tabs[0]:
+        if current_charts:
+            for start in range(0, len(current_charts), 2):
+                cols = st.columns(2)
+                for col, image_path in zip(cols, current_charts[start : start + 2]):
+                    with col:
+                        st.image(str(image_path), caption=image_path.stem.replace("_", " ").title(), use_container_width=True)
+        else:
+            st.info("Current charts have not been generated yet. Run the full rebuild.")
+
+    with gallery_tabs[1]:
+        groups = group_result_graphs(load_results_graphs())
+        if groups:
+            group_name = st.selectbox("Chart group", list(groups), key="gallery_chart_group")
+            selected_images = groups[group_name]
+            for start in range(0, len(selected_images), 2):
+                cols = st.columns(2)
+                for col, image_path in zip(cols, selected_images[start : start + 2]):
+                    with col:
+                        st.image(str(image_path), caption=image_path.name, use_container_width=True)
+        else:
+            st.info("No result images are available.")
+
+    with gallery_tabs[2]:
+        if result_artifacts:
+            preferred = [
+                "final_project_results_summary.md",
+                "paper_results_tables.md",
+                "psg_combined_metrics.csv",
+                "psg_track_contributions.csv",
+                "productivity_feature_shap_importance.csv",
+                "validation_audit.md",
+                "water_join_metadata.json",
+                "reconstruction_readiness.json",
+            ]
+            ordered_artifacts = sorted(
+                result_artifacts,
+                key=lambda path: (preferred.index(path.name) if path.name in preferred else len(preferred), path.name.lower()),
+            )
+            selected_artifact = st.selectbox(
+                "Report or data file",
+                ordered_artifacts,
+                format_func=lambda path: path.name,
+                key="gallery_artifact",
+            )
+            suffix = selected_artifact.suffix.lower()
+            if suffix == ".csv":
+                artifact_df = safe_read_csv(selected_artifact)
+                if artifact_df is not None:
+                    st.caption(f"{len(artifact_df):,} rows · {len(artifact_df.columns)} columns")
+                    st.dataframe(artifact_df, width="stretch", hide_index=True)
+            elif suffix == ".md":
+                text = load_markdown_file(selected_artifact, *file_signature(selected_artifact))
+                if text:
+                    st.markdown(text)
+            else:
+                text = load_text_file(selected_artifact, *file_signature(selected_artifact))
+                if text:
+                    st.code(text, language="json" if suffix == ".json" else "text")
+        else:
+            st.info("No result reports or data files are available.")
 
 with tabs[4]:
     st.subheader("Architecture")
-    st.caption("Best-model architecture view with model-specific pipeline/layer details and core learning formulas.")
-
-    arch_tabs = st.tabs([
-        f"Productivity - Best ML ({prod_name})",
-        "Sustainability - Best DL (MLP)",
-        f"Genomic - Best ML ({gen_name})",
-    ])
-
-    with arch_tabs[0]:
-        render_architecture_diagram(
-            "Climate + water + genomic + context features (mixed numeric + categorical)",
-            "ColumnTransformer: StandardScaler(num) + OneHotEncoder(cat)",
-            f"{prod_name} (best productivity classifier)",
-            "Productivity class + confidence",
-        )
-        st.markdown("### Best Productivity Architecture")
-        common_rows = [
-            {
-                "Stage": "Input",
-                "Definition": "Climate, water quality, genomic, and context features from processed dataset",
-            },
-            {
-                "Stage": "Preprocessing",
-                "Definition": "ColumnTransformer with StandardScaler for numeric columns and OneHotEncoder(handle_unknown='ignore') for categorical columns",
-            },
-        ]
-
-        if prod_name == "XGBoost":
-            model_row = {
-                "Stage": "Model",
-                "Definition": "XGBClassifier: boosted trees with additive stage-wise updates",
-            }
-            st.dataframe(pd.DataFrame(common_rows + [model_row, {"Stage": "Output", "Definition": "Soft class probabilities and final class label (Low/Medium/High)"}]), width="stretch", hide_index=True)
-            st.markdown("#### Core Learning Formulation")
-            st.latex(r"F^{(t)}(x)=F^{(t-1)}(x)+\eta f_t(x)")
-            st.latex(r"\hat{p}_c(x)=\frac{\exp(F_c(x))}{\sum_{j=1}^{C}\exp(F_j(x))}")
-            st.latex(r"\mathcal{L}=\sum_{i=1}^{N}\ell(y_i,\hat{p}(x_i))+\Omega(f)")
-            st.info("XGBoost captures non-linear feature interactions using additive gradient-boosted decision trees.")
-        elif prod_name in {"ExtraTrees", "RandomForest", "DecisionTree"}:
-            model_row = {
-                "Stage": "Model",
-                "Definition": f"{prod_name}: tree-based split learning over transformed feature space",
-            }
-            st.dataframe(pd.DataFrame(common_rows + [model_row, {"Stage": "Output", "Definition": "Majority-vote class label and class confidence"}]), width="stretch", hide_index=True)
-            st.markdown("#### Core Learning Formulation")
-            st.latex(r"\hat{y}=\operatorname*{argmax}_{c}\sum_{t=1}^{T}\mathbb{1}[h_t(x)=c]")
-            st.latex(r"Gini(S)=1-\sum_{c=1}^{C}p_c^2")
-            st.info("Tree ensembles improve generalization by aggregating multiple partition-based learners.")
-        else:
-            model_row = {
-                "Stage": "Model",
-                "Definition": f"{prod_name}: linear multiclass decision boundary on transformed features",
-            }
-            st.dataframe(pd.DataFrame(common_rows + [model_row, {"Stage": "Output", "Definition": "Class probabilities and predicted class"}]), width="stretch", hide_index=True)
-            st.markdown("#### Core Learning Formulation")
-            st.latex(r"\hat{p}_c(x)=\frac{\exp(w_c^\top x+b_c)}{\sum_{j=1}^{C}\exp(w_j^\top x+b_j)}")
-            st.latex(r"\mathcal{L}_{CE}=-\sum_{i=1}^{N}\sum_{c=1}^{C}y_{ic}\log(\hat{p}_{ic})")
-            st.info("Multiclass logistic modeling provides a calibrated linear baseline over transformed inputs.")
-
-    with arch_tabs[1]:
-        render_architecture_diagram(
-            "Preprocessed sustainability feature vector",
-            "Dense64(ReLU) -> Dropout(0.2) -> Dense32(ReLU)",
-            "Sequential MLP -> Dense3(Softmax)",
-            "Sustainability class + confidence",
-        )
-        st.markdown("### Best Sustainability Architecture")
-        st.dataframe(
-            pd.DataFrame(
-                [
-                    {"Layer Name": "input_features", "Type": "Input", "Shape": "(d,)", "Activation": "-", "Purpose": "Preprocessed numeric feature vector"},
-                    {"Layer Name": "dense_64", "Type": "Dense", "Shape": "64 units", "Activation": "ReLU", "Purpose": "First hidden representation"},
-                    {"Layer Name": "dropout_20", "Type": "Dropout", "Shape": "rate=0.2", "Activation": "-", "Purpose": "Regularization against overfitting"},
-                    {"Layer Name": "dense_32", "Type": "Dense", "Shape": "32 units", "Activation": "ReLU", "Purpose": "Second hidden representation"},
-                    {"Layer Name": "output_softmax", "Type": "Dense", "Shape": "3 units", "Activation": "Softmax", "Purpose": "Class probabilities (Low/Medium/High)"},
-                ]
-            ),
-            width="stretch",
-            hide_index=True,
-        )
-        st.markdown("#### Forward Pass and Loss")
-        st.latex(r"h_1=\mathrm{ReLU}(W_1x+b_1)")
-        st.latex(r"\tilde{h}_1=\mathrm{Dropout}(h_1, p=0.2)")
-        st.latex(r"h_2=\mathrm{ReLU}(W_2\tilde{h}_1+b_2)")
-        st.latex(r"\hat{p}=\mathrm{softmax}(W_3h_2+b_3)")
-        st.latex(r"\mathcal{L}_{CE}=-\sum_{i=1}^{N}\sum_{c=1}^{C}y_{ic}\log(\hat{p}_{ic})")
-        st.info("This tab reflects the best benchmark deep-learning model (MLP) with explicit hidden-layer naming and multiclass softmax objective.")
-
-    with arch_tabs[2]:
-        render_architecture_diagram(
-            "Genomic-prefixed + context features",
-            "Categorical factorization -> numeric matrix -> histogram binning",
-            "HistGradientBoostingClassifier (additive boosted trees)",
-            "Genomic class signal",
-        )
-        st.markdown("### Best Genomic Architecture")
-        st.dataframe(
-            pd.DataFrame(
-                [
-                    {
-                        "Stage": "Input",
-                        "Definition": "Genomic-prefixed features plus contextual factors (country, year, climate)",
-                    },
-                    {
-                        "Stage": "Preprocessing",
-                        "Definition": "Object columns factorized to integer codes, numeric coercion, NaN fill",
-                    },
-                    {
-                        "Stage": "Model",
-                        "Definition": "HistGradientBoostingClassifier using histogram-binned splits and stage-wise boosting",
-                    },
-                    {
-                        "Stage": "Output",
-                        "Definition": "Multiclass genomic signal used in integrated decision logic",
-                    },
-                ]
-            ),
-            width="stretch",
-            hide_index=True,
-        )
-        st.markdown("#### Core Learning Formulation")
-        st.latex(r"F_m(x)=F_{m-1}(x)+\eta h_m(x)")
-        st.latex(r"h_m\approx\arg\min_{h\in\mathcal{H}}\sum_{i=1}^{N}\left[g_{im}h(x_i)+\frac{1}{2}h_{im}h(x_i)^2\right]")
-        st.latex(r"\hat{p}_c(x)=\frac{\exp(F_{M,c}(x))}{\sum_{j=1}^{C}\exp(F_{M,j}(x))}")
-        st.latex(r"\mathcal{L}_{log}=-\sum_{i=1}^{N}\sum_{c=1}^{C}y_{ic}\log(\hat{p}_{ic})")
-        st.info("Histogram-based boosting scales well on genomic feature spaces while modeling non-linear interactions across predictors.")
+    st.caption("Model types and input features are read from the current saved artifacts.")
+    productivity_features_now = expected_features(productivity_model) or []
+    sustainability_features_now = sustainability_bundle.get("feature_columns", []) if isinstance(sustainability_bundle, dict) else expected_features(sustainability_bundle) or []
+    genomic_features_now = expected_features(feature_selector_model) or []
+    architecture_rows = [
+        {"Track": "Productivity", "Model": prod_name, "Inputs": ", ".join(productivity_features_now), "Target": "Production tertiles from log1p(production)"},
+        {"Track": "Sustainability", "Model": sust_name, "Inputs": ", ".join(sustainability_features_now), "Target": "Production tertiles"},
+        {"Track": "Auxiliary context classifier", "Model": gen_name, "Inputs": ", ".join(genomic_features_now), "Target": "Production tertiles; not genomic sample disease risk"},
+    ]
+    st.dataframe(pd.DataFrame(architecture_rows), width="stretch", hide_index=True)
+    st.info(
+        "The production table contains country, year, and six time-bucket water measurements. "
+        "Climate is excluded because the source years do not overlap production; raw genomic samples "
+        "are clustered separately and cannot be joined to farm records with the available keys."
+    )
 
 with tabs[5]:
     st.subheader("Forecasting")
@@ -1552,28 +1466,30 @@ with tabs[5]:
 
 with tabs[6]:
     st.subheader("Scenario Simulation")
-    st.caption("Apply scenario adjustments and compare baseline vs changed outcomes.")
+    st.caption("Perturb the six time-bucket water features used by the current models.")
     st.divider()
     baseline = dict(st.session_state.get("latest_profile", dict(base_profile)))
     scenario = dict(baseline)
 
-    c1, c2, c3 = st.columns(3)
-    d_temp = c1.slider("Temperature adjustment", -5.0, 5.0, 0.0, 0.5, key="sc_temp")
-    d_rain = c2.slider("Rainfall adjustment", -80.0, 80.0, 0.0, 5.0, key="sc_rain")
-    d_water = c3.slider("Water quality adjustment", -2.0, 2.0, 0.0, 0.1, key="sc_water")
+    scenario_changes = {}
+    controls = st.columns(3)
+    for index, feature in enumerate(WATER_FEATURES):
+        center = float(baseline.get(feature, data_df[feature].median()))
+        spread = float(data_df[feature].std(ddof=0))
+        step = max(spread / 10.0, 0.01)
+        change = controls[index % len(controls)].slider(
+            f"{WATER_LABELS[feature]} adjustment",
+            min_value=-2.0 * spread if spread > 0 else -0.5,
+            max_value=2.0 * spread if spread > 0 else 0.5,
+            value=0.0,
+            step=step,
+            key=f"scenario_{feature}",
+        )
+        scenario[feature] = center + float(change)
+        scenario_changes[feature] = float(change)
 
-    scenario_shift = abs(d_temp) * 1.5 + abs(d_rain) * 0.08 + abs(d_water) * 12.0
-
-    if "temperature_celsius" in scenario:
-        scenario["temperature_celsius"] = float(scenario["temperature_celsius"]) + float(d_temp)
-    if "water_WaterTemp (C)" in scenario:
-        scenario["water_WaterTemp (C)"] = float(scenario["water_WaterTemp (C)"]) + float(d_temp)
-    if "precip_mm" in scenario:
-        scenario["precip_mm"] = float(scenario["precip_mm"]) + float(d_rain)
-    if "water_pH" in scenario:
-        scenario["water_pH"] = float(scenario["water_pH"]) + float(d_water * 0.2)
-    if "water_Salinity (ppt)" in scenario:
-        scenario["water_Salinity (ppt)"] = float(scenario["water_Salinity (ppt)"]) + float(d_water * 0.8)
+    spread_by_feature = data_df[WATER_FEATURES].std(ddof=0).replace(0, 1.0)
+    scenario_shift = float(np.mean([abs(scenario_changes[col]) / spread_by_feature[col] for col in WATER_FEATURES]))
 
     base_prod = build_aligned_input(baseline, productivity_model, data_df)
     scen_prod = build_aligned_input(scenario, productivity_model, data_df)
@@ -1650,13 +1566,15 @@ with tabs[7]:
     for level, text in recs:
         if level == "warning":
             st.warning(text)
+        elif level == "info":
+            st.info(text)
         else:
             st.success(text)
 
     s1, s2, s3 = st.columns(3)
     s1.metric("Productivity score", f"{float(latest.get('productivity_score') or 0.0):.1f}/100")
     s2.metric("Sustainability", str(latest.get("sustainability_label") or "N/A"))
-    s3.metric("Genomic signal", str(latest.get("genomic_signal") or "N/A"))
+    s3.metric("Auxiliary class signal", str(latest.get("genomic_signal") or "N/A"))
     st.caption(f"Sustainability score: {float(latest.get('sustainability_score') or 0.0):.1f}/100")
 
 st.markdown("---")
