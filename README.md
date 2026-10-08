@@ -79,11 +79,13 @@ These values are regenerated from the checked-in benchmark CSVs and the notebook
 
 | Track | Best Result Used in Reports | Accuracy | F1 | Notes |
 |---|---|---:|---:|---|
-| Productivity | ExtraTrees | 0.9601 | 0.9603 | Deployment-best model with optimal recall-weighted selection |
-| Sustainability | MLP | 0.9481 | 0.9479 | Real notebook benchmark preserved in `results/sustainability_metrics.csv` |
-| Genomic | HistGB | 0.9468 | 0.9470 | Best genomic benchmark in the 8-model comparison |
+| Productivity | LightGBM | 0.9335 | 0.9336 | Current augmented benchmark winner; train accuracy 0.9692 |
+| Sustainability | XGBoost_rebuild | 0.8362 | 0.8389 | Rebuilt using the current 9-column feature table |
+| Genomic | HistGB | 0.8889 | 0.8899 | Current rebuilt benchmark on the available feature table |
 
 PSG fusion on the common 459-sample held-out subset is also generated from real predictions: accuracy 0.7407, precision 0.7407, recall 0.7404, F1 0.7405. See `results/psg_combined_metrics.csv` and `results/paper_results_tables.md`.
+
+PSG weighting is configured as Productivity 50%, Sustainability 35%, and Genomic 15%; the repository has no validation-based weight optimization establishing that ratio. The latest weight and productivity-feature SHAP charts are [psg_track_weight_split.png](results/psg_track_weight_split.png) and [productivity_feature_shap_importance.png](results/productivity_feature_shap_importance.png). Productivity feature SHAP explains the selected productivity model only and does not justify the cross-track fusion weights.
 
 ### Methodology Note: PSG Fusion Rule
 The PSG combined row is computed as $R = 0.50\,P_r + 0.35\,S_r + 0.15\,G_r$ on the shared held-out samples. The continuous score is then discretized using **data-driven tertiles** of R itself, matching the quantile-based approach used for the production target. This ensures class balance and adapts to R's actual distribution, avoiding calibration bias from fixed thresholds.

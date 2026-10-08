@@ -57,6 +57,12 @@ def pick_productivity_deployment_row(df: pd.DataFrame | None) -> pd.Series | Non
     if df is None or len(df) == 0:
         return None
 
+    if {"train_accuracy", "test_accuracy", "recall_macro", "f1_macro"}.issubset(df.columns):
+        return df.sort_values(
+            ["recall_macro", "f1_macro", "test_accuracy", "infer_ms_per_1000"],
+            ascending=[False, False, False, True],
+        ).iloc[0]
+
     required_cols = {"model", "accuracy", "f1_macro", "infer_ms_per_1000"}
     if required_cols.issubset(set(df.columns)):
         candidates = df[df["model"].astype(str).isin(DEPLOYMENT_ENSEMBLE_CANDIDATES)].copy()
@@ -120,6 +126,8 @@ def build_summary_text() -> str:
     genomic_metrics = read_csv(RESULTS_DIR / "janhavi_model_metrics.csv")
     genomic_importance = read_csv(RESULTS_DIR / "genomic_feature_importance.csv")
     psg_metrics = read_csv(RESULTS_DIR / "psg_combined_metrics.csv")
+    psg_contributions = read_csv(RESULTS_DIR / "psg_track_contributions.csv")
+    productivity_shap = read_csv(RESULTS_DIR / "productivity_feature_shap_importance.csv")
 
     best_prod = pick_productivity_deployment_row(productivity)
     best_sus = pick_best_row(
@@ -151,6 +159,39 @@ def build_summary_text() -> str:
     psg_accuracy = fmt_num(psg_metrics.iloc[0].get("accuracy", "N/A"), digits=4) if psg_metrics is not None and len(psg_metrics) else "N/A"
     psg_f1 = fmt_num(psg_metrics.iloc[0].get("f1_macro", "N/A"), digits=4) if psg_metrics is not None and len(psg_metrics) else "N/A"
     lines.append(f"The current results use the rebuilt official 9-column dataset: country, year, production, and six time-bucket water-quality features. Climate columns were excluded because the source covers 2024-2026 while production covers 1960-2018. Genomic global aggregates were excluded because no production-compatible join key exists. Country is label-encoded, year is numeric, decade is derived from year, and the production target uses log1p quantile construction. Earlier optimistic metrics that used zero-variance climate/genomic columns are not valid predictive evidence. The current PSG accuracy is {psg_accuracy} and macro-F1 is {psg_f1}; these are the honest augmented-feature results.")
+    lines.append("")
+
+    lines.append("## PSG Weighting and Feature Attribution")
+    lines.append("")
+    lines.append("The implemented fusion rule uses fixed coefficients: Productivity 50%, Sustainability 35%, and Genomic 15%. Productivity has the largest configured coefficient because that is how the current rule is coded; the repository contains no documented learned-weight procedure or validation study establishing that 50/35/15 is optimal. The pie chart shows configured coefficients, not model-learned importance.")
+    lines.append("")
+    lines.append("| Track | Configured weight | Realized mean contribution share on PSG held-out samples |")
+    lines.append("|---|---:|---:|")
+    if psg_contributions is not None and len(psg_contributions):
+        for _, row in psg_contributions.iterrows():
+            lines.append(f"| {row['track']} | {float(row['configured_weight_pct']):.1f}% | {float(row['realized_mean_contribution_pct']):.1f}% |")
+    lines.append("")
+    lines.append("Configured weights reflect the current rule, not a learned optimum: Productivity is highest at 50%, Sustainability is 35%, and Genomic is 15%. The repository does not document a tuning or validation study that established this ratio; productivity's larger coefficient is a design choice, not a SHAP-derived conclusion.")
+    lines.append("")
+    lines.append("The feature SHAP chart is computed for the selected productivity LightGBM model on its held-out split. It ranks input-feature influence within that model; it does not justify or estimate cross-track PSG weights. Current results rank country encoding and year highest. Country uses ordinal/label-style codes, which impose an artificial ordering, and year/decade are correlated; interpret those attributions cautiously. The six water inputs are time-bucket measurements, not country-specific observations.")
+    lines.append("")
+    lines.append("![Configured PSG track weights](psg_track_weight_split.png)")
+    lines.append("")
+    lines.append("![Productivity feature SHAP importance](productivity_feature_shap_importance.png)")
+    lines.append("")
+    lines.append("### Productivity Feature SHAP Values")
+    lines.append("")
+    if productivity_shap is not None and len(productivity_shap):
+        shap_rows = rows_from_df(
+            productivity_shap,
+            ["feature", "mean_abs_shap", "relative_importance_pct"],
+            numeric_cols={"mean_abs_shap", "relative_importance_pct"},
+            digits=4,
+        )
+        lines.extend(markdown_table(["Feature", "Mean |SHAP|", "Share of total (%)"], shap_rows))
+    else:
+        lines.append("- Feature SHAP values are unavailable.")
+    lines.append("")
     lines.append("")
 
     lines.append("## 1. Artifact Readiness Matrix")

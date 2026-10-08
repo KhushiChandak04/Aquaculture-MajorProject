@@ -50,6 +50,11 @@ def main() -> int:
         RESULTS_DIR / "temporal_walk_forward.csv",
         RESULTS_DIR / "leakage_audit.json",
         RESULTS_DIR / "reconstruction_readiness.json",
+        RESULTS_DIR / "psg_track_weight_split.png",
+        RESULTS_DIR / "productivity_feature_shap_importance.png",
+        RESULTS_DIR / "productivity_feature_shap_importance.csv",
+        RESULTS_DIR / "psg_track_contributions.csv",
+        RESULTS_DIR / "model_comparison_visualization.png",
         DATA_DIR / "genomic_sample_clusters.csv",
         MODELS_DIR / "genomic_sample_clusterer.pkl",
     ]
@@ -61,6 +66,8 @@ def main() -> int:
     check_csv_columns(RESULTS_DIR / "sustainability_metrics.csv", ["accuracy", "f1"], failures)
     check_csv_columns(RESULTS_DIR / "genomic_feature_importance.csv", ["feature", "importance_mean", "importance_std"], failures)
     check_csv_columns(RESULTS_DIR / "psg_combined_metrics.csv", ["model", "accuracy", "precision_macro", "recall_macro", "f1_macro"], failures)
+    check_csv_columns(RESULTS_DIR / "productivity_feature_shap_importance.csv", ["feature", "mean_abs_shap", "relative_importance_pct"], failures)
+    check_csv_columns(RESULTS_DIR / "psg_track_contributions.csv", ["track", "configured_weight_pct", "mean_weighted_contribution", "realized_mean_contribution_pct"], failures)
 
     if missing or failures:
         print("QUALITY GATE: FAILED")
