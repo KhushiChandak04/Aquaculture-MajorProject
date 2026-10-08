@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 from typing import Any
 
 import joblib
@@ -28,6 +29,8 @@ except Exception:
 
 APP_DIR = Path(__file__).resolve().parent
 BASE_DIR = APP_DIR.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 MODELS_DIR = BASE_DIR / "models"
 RESULTS_DIR = BASE_DIR / "results"
 DATA_FILE = BASE_DIR / "data" / "processed" / "final_dataset.csv"
@@ -603,6 +606,8 @@ def explain_pipeline_track(
 def resolve_estimator(model_obj):
     if model_obj is None:
         return None
+    if isinstance(model_obj, dict):
+        model_obj = model_obj.get("model")
     if hasattr(model_obj, "named_steps"):
         return model_obj.named_steps.get("model", model_obj)
     return model_obj
@@ -1033,6 +1038,50 @@ def group_result_graphs(graphs: list[Path]) -> dict[str, list[Path]]:
     return {k: v for k, v in groups.items() if v}
 
 
+def ensure_model_artifacts() -> None:
+    missing = [
+        label
+        for label, path in [
+            ("Productivity", PRODUCTIVITY_MODEL_PATH),
+            ("Sustainability", SUSTAINABILITY_MODEL_PATH),
+            ("Auxiliary classifier", FEATURE_SELECTOR_PATH),
+        ]
+        if not path.exists()
+    ]
+    if not missing:
+        return
+
+    with st.status("Preparing missing model artifacts from the processed official dataset...", expanded=True) as status:
+        try:
+            from scripts.build_sustainability_model import main as train_sustainability
+            from scripts.train_genomic_model import main as train_auxiliary_classifier
+            from scripts.train_models import run_augmented_productivity_benchmark
+
+            if not PRODUCTIVITY_MODEL_PATH.exists():
+                st.write("Training productivity model")
+                run_augmented_productivity_benchmark()
+            if not SUSTAINABILITY_MODEL_PATH.exists():
+                st.write("Training sustainability model")
+                train_sustainability()
+            if not FEATURE_SELECTOR_PATH.exists():
+                st.write("Training auxiliary context classifier")
+                train_auxiliary_classifier()
+
+            still_missing = [
+                str(path.name)
+                for path in [PRODUCTIVITY_MODEL_PATH, SUSTAINABILITY_MODEL_PATH, FEATURE_SELECTOR_PATH]
+                if not path.exists()
+            ]
+            if still_missing:
+                raise RuntimeError(f"Training did not create required artifacts: {still_missing}")
+        except Exception as exc:
+            status.update(label="Model setup failed", state="error")
+            st.error(f"Could not prepare model artifacts: {exc}")
+            st.stop()
+
+        status.update(label="Missing model artifacts trained and loaded", state="complete")
+
+
 st.set_page_config(page_title="Aquaculture Intelligence Platform", page_icon="AQ", layout="wide")
 
 st.markdown(
@@ -1066,11 +1115,16 @@ st.markdown(
 
 st.link_button("Open deployed app", DEPLOYMENT_URL)
 
+data_df = load_data(*file_signature(DATA_FILE))
+if data_df is None:
+    st.error(f"Processed dataset is missing: {DATA_FILE}")
+    st.stop()
+
+ensure_model_artifacts()
 productivity_model = load_pickle(PRODUCTIVITY_MODEL_PATH, *file_signature(PRODUCTIVITY_MODEL_PATH))
 sustainability_bundle = load_pickle(SUSTAINABILITY_MODEL_PATH, *file_signature(SUSTAINABILITY_MODEL_PATH))
 feature_selector_model = load_pickle(FEATURE_SELECTOR_PATH, *file_signature(FEATURE_SELECTOR_PATH))
 
-data_df = load_data(*file_signature(DATA_FILE))
 results_graphs = filter_primary_spiral_graphs(load_results_graphs())
 total_result_graphs = len(results_graphs)
 result_artifacts = load_result_artifacts()
@@ -1080,12 +1134,8 @@ psg_metrics_df = safe_read_csv(RESULTS_DIR / "psg_combined_metrics.csv")
 st.sidebar.header("System Status")
 st.sidebar.write(f"Productivity model: {'Ready' if productivity_model is not None else 'Missing'}")
 st.sidebar.write(f"Sustainability model: {'Ready' if sustainability_bundle is not None else 'Missing'}")
-st.sidebar.write(f"Feature selector: {'Ready' if feature_selector_model is not None else 'Missing'}")
+st.sidebar.write(f"Auxiliary context classifier: {'Ready' if feature_selector_model is not None else 'Missing'}")
 st.sidebar.write(f"Processed dataset: {'Ready' if data_df is not None else 'Missing'}")
-
-if data_df is None:
-    st.error("Processed dataset is missing. Run preprocessing first.")
-    st.stop()
 
 base_profile = default_profile(data_df)
 
